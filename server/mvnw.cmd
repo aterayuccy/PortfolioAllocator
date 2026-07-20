@@ -33,7 +33,7 @@
 @SET __MVNW_PSMODULEP_SAVE=%PSModulePath%
 @SET PSModulePath=
 @FOR /F "usebackq tokens=1* delims==" %%A IN (`powershell -noprofile "& {$scriptDir='%~dp0'; $script='%__MVNW_ARG0_NAME__%'; icm -ScriptBlock ([Scriptblock]::Create((Get-Content -Raw '%~f0'))) -NoNewScope}"`) DO @(
-  IF "%%A"=="MVN_CMD" (set __MVNW_CMD__=%%B) ELSE IF "%%B"=="" (echo %%A) ELSE (echo %%A=%%B)
+  IF "%%A"=="MVN_CMD" (set __MVNW_CMD__=%%B) ELSE IF "%%A"=="JAVA_HOME" (set "JAVA_HOME=%%B") ELSE IF "%%B"=="" (echo %%A) ELSE (echo %%A=%%B)
 )
 @SET PSModulePath=%__MVNW_PSMODULEP_SAVE%
 @SET __MVNW_PSMODULEP_SAVE=
@@ -48,6 +48,16 @@
 $ErrorActionPreference = "Stop"
 if ($env:MVNW_VERBOSE -eq "true") {
   $VerbosePreference = "Continue"
+}
+
+# Prefer the project-local Java 21 runtime when one is available. This keeps the
+# wrapper usable on machines whose system PATH still points to an older Java.
+$projectJdk = Get-ChildItem -Path "$scriptDir/../.runtime/jdk21" -Directory -ErrorAction SilentlyContinue |
+  Where-Object { Test-Path "$($_.FullName)/bin/java.exe" } |
+  Select-Object -First 1
+if ($projectJdk) {
+  $env:JAVA_HOME = $projectJdk.FullName
+  $env:Path = "$($projectJdk.FullName)/bin;$env:Path"
 }
 
 # calculate distributionUrl, requires .mvn/wrapper/maven-wrapper.properties
@@ -87,6 +97,7 @@ $MAVEN_HOME = "$MAVEN_HOME_PARENT/$MAVEN_HOME_NAME"
 
 if (Test-Path -Path "$MAVEN_HOME" -PathType Container) {
   Write-Verbose "found existing MAVEN_HOME at $MAVEN_HOME"
+  if ($projectJdk) { Write-Output "JAVA_HOME=$($projectJdk.FullName)" }
   Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
   exit $?
 }
@@ -146,4 +157,5 @@ try {
   catch { Write-Warning "Cannot remove $TMP_DOWNLOAD_DIR" }
 }
 
+if ($projectJdk) { Write-Output "JAVA_HOME=$($projectJdk.FullName)" }
 Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
