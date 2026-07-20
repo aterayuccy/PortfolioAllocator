@@ -104,7 +104,7 @@ function AuthScreen({ onAuthenticated }) {
   }
 
   return <div className="auth-shell">
-    <div className="auth-brand"><span>ML</span><strong>Market Lens</strong></div>
+    <div className="auth-brand"><span>PA</span><strong>Portfolio Allocator</strong></div>
     <main className="auth-card">
       <div className="eyebrow">PERSONAL PORTFOLIO</div>
       <h1>{mode === 'login' ? <>登入你的研究清單</> : <>建立你的研究清單</>}</h1>
@@ -269,7 +269,7 @@ function App() {
   if (!portfolioLoaded) return <div className="session-loading"><i/><span>正在載入你的研究清單…</span></div>
 
   return <div className="app">
-    <header><a className="brand" href="#top"><span>ML</span> Market Lens</a><div className="account-nav"><div><strong>{user?.name}</strong><small>{user?.email}</small></div><button className="logout-button" onClick={logout}>登出</button></div></header>
+    <header><a className="brand" href="#top"><span>PA</span> Portfolio Allocator</a><div className="account-nav"><div><strong>{user?.name}</strong><small>{user?.email}</small></div><button className="logout-button" onClick={logout}>登出</button></div></header>
     <main id="top">
       <section className="hero compact-hero"><div className="eyebrow">WATCHLIST RESEARCH</div><h1>用年增看懂<br/><em>研究清單的變化</em></h1><p>目前只支援個股；輸入 Yahoo Finance 代號後自動加入清單，個股以最新年度與前一年度的年增資料計算品質分數。</p><form onSubmit={search} className="search"><span>⌕</span><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="例如 2330.TW、AAPL" aria-label="標的代號"/><button disabled={loading}>{loading ? '取得中…' : '搜尋並加入'}</button></form><div className="quick"><span>快速加入</span>{['2330.TW', 'AAPL', 'NVDA', 'MSFT'].map((item) => <button key={item} onClick={(event) => search(event, item)}>{item}</button>)}</div></section>
       <section className="dashboard simplified-dashboard">
@@ -293,7 +293,7 @@ function App() {
           <p className="method-warning">資料來源為 Yahoo Finance。目前只處理個股；四項基本面指標（經濟利差、投入資本年增、營業收入年增、毛利率年增）必須全部可計算，否則不會列入研究清單。這些數值是研究輔助，不是投資建議。</p>
         </section>}
       </section>
-    </main><footer><span>Market Lens</span><p>研究工具會保留你的清單與股數，實際交易前請自行確認資料與風險。</p></footer>
+    </main><footer><span>Portfolio Allocator</span><p>研究工具會保留你的清單與股數，實際交易前請自行確認資料與風險。</p></footer>
   </div>
 }
 
