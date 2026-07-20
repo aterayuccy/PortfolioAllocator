@@ -1,0 +1,11 @@
+# Local development data
+server/data/
+*.db
+*.mv.db
+*.lock.db
+
+# Local environment and editor files
+.env
+.env.*
+!.env.example
+.vscode/
