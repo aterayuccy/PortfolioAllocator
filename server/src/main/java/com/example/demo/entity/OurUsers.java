@@ -1,7 +1,9 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,18 +14,18 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 @Entity
 @Table(name = "ourusers")
-@Data
+@Getter
+@Setter
 
 public class OurUsers implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @Column(nullable = false, unique = true)
-    private String email;
-    private String name;
+    private String username;
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
-    private String city;
     private String role;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -31,8 +33,7 @@ public class OurUsers implements UserDetails {
     }
     @Override
     public String getUsername() {
-        
-        return email;
+        return username;
     }
 
     @Override

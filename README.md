@@ -54,3 +54,20 @@ hosting platform's secret or environment-variable settings.
 
 The previous H2 files under `server/data/` are not read by PostgreSQL. Migrating
 existing local data requires a separate one-time export/import step.
+
+## Cloud deployment
+
+The `client` directory can be deployed to OpenAI Sites. Its Cloudflare Worker
+serves the React application and API, while Cloudflare D1 stores users and
+portfolio holdings.
+
+Required runtime variables:
+
+- `JWT_SECRET`
+- `ADMIN_BOOTSTRAP_USERNAME`
+- `ADMIN_BOOTSTRAP_PASSWORD`
+- `USER_BOOTSTRAP_USERNAME`
+- `USER_BOOTSTRAP_PASSWORD`
+
+Passwords and signing secrets must be configured in the hosting environment;
+do not commit them to this repository.
