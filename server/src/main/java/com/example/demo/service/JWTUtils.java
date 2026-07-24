@@ -20,20 +20,20 @@ public class JWTUtils {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email) {
+    public String generateToken(String username) {
         Date now = new Date();
-        return Jwts.builder().setSubject(email).setIssuedAt(now)
+        return Jwts.builder().setSubject(username).setIssuedAt(now)
                 .setExpiration(new Date(now.getTime() + lifetime.toMillis()))
                 .signWith(key).compact();
     }
 
-    public String extractEmail(String token) {
+    public String extractUsername(String token) {
         return claims(token).getSubject();
     }
 
-    public boolean isValid(String token, String email) {
+    public boolean isValid(String token, String username) {
         Claims claims = claims(token);
-        return email.equals(claims.getSubject()) && claims.getExpiration().after(new Date());
+        return username.equals(claims.getSubject()) && claims.getExpiration().after(new Date());
     }
 
     private Claims claims(String token) {

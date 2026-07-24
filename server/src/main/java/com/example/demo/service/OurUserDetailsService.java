@@ -13,8 +13,8 @@ public class OurUserDetailsService implements UserDetailsService {
     public OurUserDetailsService(UsersRepo usersRepo) { this.usersRepo = usersRepo; }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return usersRepo.findByEmail(email.toLowerCase())
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return usersRepo.findByUsername(username.toLowerCase())
                 .orElseThrow(() -> new UsernameNotFoundException("找不到使用者"));
     }
 }
