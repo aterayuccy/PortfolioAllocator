@@ -1,0 +1,12 @@
+.git
+.github
+.runtime
+.env
+.env.*
+client/node_modules
+client/dist
+server/target
+server/data
+*.db
+*.mv.db
+*.lock.db

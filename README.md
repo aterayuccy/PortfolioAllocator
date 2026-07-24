@@ -55,19 +55,23 @@ hosting platform's secret or environment-variable settings.
 The previous H2 files under `server/data/` are not read by PostgreSQL. Migrating
 existing local data requires a separate one-time export/import step.
 
-## Cloud deployment
+## Railway deployment
 
-The `client` directory can be deployed to OpenAI Sites. Its Cloudflare Worker
-serves the React application and API, while Cloudflare D1 stores users and
-portfolio holdings.
+Railway builds the root `Dockerfile` into one web service. The React client is
+packaged into the Spring Boot application, and a Railway PostgreSQL service
+stores accounts and portfolio holdings.
 
-Required runtime variables:
+Configure these variables on the web service:
 
+- `DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`
+- `DB_USERNAME=${{Postgres.PGUSER}}`
+- `DB_PASSWORD=${{Postgres.PGPASSWORD}}`
 - `JWT_SECRET`
 - `ADMIN_BOOTSTRAP_USERNAME`
 - `ADMIN_BOOTSTRAP_PASSWORD`
 - `USER_BOOTSTRAP_USERNAME`
 - `USER_BOOTSTRAP_PASSWORD`
 
-Passwords and signing secrets must be configured in the hosting environment;
-do not commit them to this repository.
+Bootstrap credentials are used only when the corresponding account does not
+exist. Passwords and signing secrets belong in Railway Variables and must not
+be committed to the repository.
