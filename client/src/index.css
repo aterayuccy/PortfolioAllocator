@@ -906,12 +906,27 @@ footer {
 }
 
 @media (max-width: 640px) {
+  html,
+  body,
+  #root,
+  .app {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
   header {
     height: 68px;
+    gap: 10px;
     padding-inline: 18px;
   }
 
   .brand {
+    min-width: 0;
     font-size: 1rem;
   }
 
@@ -921,11 +936,15 @@ footer {
   }
 
   .account-nav {
+    min-width: 0;
+    flex: 1;
+    justify-content: flex-end;
     gap: 8px;
   }
 
   .user-profile {
-    min-width: 46px;
+    min-width: 0;
+    max-width: min(92px, 28vw);
     gap: 3px;
   }
 
@@ -936,13 +955,40 @@ footer {
   }
 
   .user-profile-name {
-    max-width: 82px;
+    max-width: 100%;
     font-size: .58rem;
   }
 
   .account-nav button {
+    flex: 0 0 auto;
     min-height: 40px;
     padding-inline: 13px;
+  }
+
+  .auth-shell {
+    min-height: 100svh;
+    align-content: start;
+    padding: 96px 16px 38px;
+  }
+
+  .auth-brand {
+    top: 22px;
+    left: 16px;
+  }
+
+  .auth-card {
+    width: 100%;
+    padding: 26px 22px;
+  }
+
+  .auth-card h1 {
+    font-size: clamp(1.9rem, 9vw, 2.4rem);
+  }
+
+  .auth-footnote {
+    position: static;
+    margin-top: 24px;
+    text-align: center;
   }
 
   .hero,
@@ -975,6 +1021,16 @@ footer {
     padding-inline: 18px;
   }
 
+  .quality-filter {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .quality-filter > button {
+    width: 100%;
+  }
+
   .screen-result-head > strong {
     font-size: 2.8rem;
   }
@@ -992,6 +1048,69 @@ footer {
     min-height: 0;
   }
 
+  .screen-result,
+  .screen-table,
+  .rebalance-table {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .screen-table-head {
+    display: none;
+  }
+
+  .screen-row {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 18px;
+    padding: 18px;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  .screen-row > span:first-child {
+    grid-column: 1 / -1;
+    padding-right: 44px;
+  }
+
+  .screen-row > span:first-child strong {
+    font-family: 'DM Mono', monospace;
+  }
+
+  .screen-row > [data-label] {
+    display: grid;
+    justify-items: start;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .screen-row > [data-label]::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: .68rem;
+    font-weight: 600;
+  }
+
+  .screen-row > b[data-label] {
+    justify-self: stretch;
+    padding: 0;
+    color: #8dd2ff;
+    background: transparent;
+  }
+
+  .screen-row > b[data-label]::after {
+    content: ' 分';
+  }
+
+  .screen-row .row-remove {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+  }
+
+  .screen-row {
+    position: relative;
+  }
+
   .configurable-allocation > .allocation-intro,
   .configurable-allocation > .allocation-settings,
   .configurable-allocation > .allocation-chart,
@@ -999,8 +1118,89 @@ footer {
     padding-inline: 18px;
   }
 
+  .factor-controls > label,
+  .face-controls > label,
+  .balance-control > label,
+  .weight-control {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .factor-controls label > div,
+  .face-controls label > div,
+  .balance-control label > div,
+  .weight-control > div {
+    grid-template-columns: minmax(0, 1fr) 52px 16px;
+  }
+
+  .cash-flow-control label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+
+  .cash-flow-control label span {
+    grid-column: 1 / -1;
+  }
+
+  .cash-flow-control input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rebalance-table {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   footer {
     padding-inline: 18px;
+  }
+}
+
+@media (max-width: 430px) {
+  header {
+    padding-inline: 14px;
+  }
+
+  .brand > .brand-name {
+    display: none;
+  }
+
+  .normalization-range {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .normalization-range > i {
+    display: none;
+  }
+
+  .normalization-range > label {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .hero,
+  .dashboard,
+  .screen-result-head,
+  .quality-filter,
+  .rebalance-workspace,
+  .standardization-formula,
+  .configurable-allocation > .allocation-intro,
+  .configurable-allocation > .allocation-settings,
+  .configurable-allocation > .allocation-chart,
+  .configurable-allocation > .concentration-warning {
+    padding-inline: 14px;
+  }
+
+  .screen-row {
+    gap: 13px 12px;
+    padding-inline: 14px;
+  }
+
+  .screen-row .row-remove {
+    right: 14px;
   }
 }
 
