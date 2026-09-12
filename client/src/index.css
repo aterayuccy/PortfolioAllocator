@@ -2144,3 +2144,50 @@ footer {
     bottom: auto;
   }
 }
+
+/* Filter row and inline warning alignment */
+.quality-filter {
+  align-items: center;
+}
+
+.quality-filter > div {
+  align-self: center;
+}
+
+.quality-filter label {
+  grid-template-columns: auto 90px 18px;
+  align-items: center;
+  justify-content: start;
+}
+
+.quality-filter label span {
+  grid-column: auto;
+  white-space: nowrap;
+}
+
+.quality-filter > button {
+  align-self: center;
+}
+
+.disclosure-shell > .disclosure-reset {
+  top: 34px;
+  transform: translateY(-50%);
+}
+
+.allocation-pie-column > .concentration-warning {
+  width: max-content;
+  max-width: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .quality-filter label {
+    grid-template-columns: auto minmax(70px, 90px) 18px;
+  }
+
+  .allocation-pie-column > .concentration-warning {
+    width: auto;
+    max-width: 320px;
+    white-space: normal;
+  }
+}
