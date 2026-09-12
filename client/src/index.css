@@ -2231,3 +2231,52 @@ footer {
     right: 64px;
   }
 }
+
+/* Fixed disclosure header geometry */
+.disclosure-shell > details > summary {
+  box-sizing: border-box;
+  height: 68px;
+  min-height: 68px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.disclosure-actions {
+  height: 68px;
+}
+
+.disclosure-actions .disclosure-reset {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1;
+}
+
+.score-settings > summary::after,
+.collapsible-settings > summary::after {
+  content: '⌄';
+  transform: translateY(-50%);
+}
+
+.score-settings[open] > summary::after,
+.collapsible-settings[open] > summary::after {
+  content: '⌃';
+  transform: translateY(-50%);
+}
+
+@media (max-width: 640px) {
+  .disclosure-shell > details > summary {
+    height: 96px;
+    min-height: 96px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .disclosure-actions {
+    height: 96px;
+  }
+}
