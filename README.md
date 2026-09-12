@@ -1,19 +1,12 @@
 # Portfolio Allocator
 
+Research stock fundamentals, calculate quality scores, and mix equal-weight and quality-based portfolio allocations. No account is required.
+
+Watchlists, holdings, and scoring settings are saved in the current browser using localStorage. They are not synchronized between browsers or devices. Clearing browser site data removes these saved values.
+
 ## Local development
 
-Prerequisites:
-
-- Java 21
-- Node.js and npm
-- Docker with Docker Compose
-
-Start PostgreSQL from the repository root:
-
-```powershell
-Copy-Item .env.example .env
-docker compose up -d postgres
-```
+Prerequisites: Java 21 and Node.js with npm. No database is required.
 
 Start the Spring Boot API:
 
@@ -22,56 +15,31 @@ cd server
 .\start.ps1
 ```
 
-On Windows with PostgreSQL installed, the startup script automatically creates
-and starts an isolated project database at `127.0.0.1:55432`. Its files live
-under the ignored `.runtime/postgres-data` directory. The cluster accepts only
-local loopback connections and is intended for development use.
-
-To connect to another PostgreSQL instance, pass its JDBC URL and role. The
-script securely prompts for that instance's password:
-
-```powershell
-.\start.ps1 -DatabaseUrl jdbc:postgresql://localhost:5432/portfolio_allocator -DatabaseUser postgres
-```
-
-On Windows, the Maven Wrapper automatically uses a Java 21 runtime under
-`.runtime/jdk21` when present, even if the system `PATH` still points to Java 8.
+On Windows, the Maven Wrapper uses `.runtime/jdk21` when available.
 
 Start the Vite client in another terminal:
 
 ```powershell
 cd client
+npm ci
 npm run dev
 ```
 
-The client runs at `http://localhost:5173` and the API runs at
-`http://localhost:1010`.
+The client runs at `http://localhost:5173` and the API at `http://localhost:1010`.
 
-The default development database settings are defined in `.env.example` and
-match `server/src/main/resources/application.properties`. For deployed
-environments, provide `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` through the
-hosting platform's secret or environment-variable settings.
+## Verification
 
-The previous H2 files under `server/data/` are not read by PostgreSQL. Migrating
-existing local data requires a separate one-time export/import step.
+```powershell
+cd client
+npm run build
+cd ../server
+.\mvnw.cmd test
+```
 
-## Railway deployment
+## Deployment
 
-Railway builds the root `Dockerfile` into one web service. The React client is
-packaged into the Spring Boot application, and a Railway PostgreSQL service
-stores accounts and portfolio holdings.
+Run `docker compose up --build` to serve the application at `http://localhost:1010`.
 
-Configure these variables on the web service:
+Railway builds the root Dockerfile into one web service. The React client is packaged into Spring Boot. Railway supplies PORT; no database, JWT secret, or bootstrap accounts are required.
 
-- `DB_URL=jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}`
-- `DB_USERNAME=${{Postgres.PGUSER}}`
-- `DB_PASSWORD=${{Postgres.PGPASSWORD}}`
-- `JWT_SECRET`
-- `ADMIN_BOOTSTRAP_USERNAME`
-- `ADMIN_BOOTSTRAP_PASSWORD`
-- `USER_BOOTSTRAP_USERNAME`
-- `USER_BOOTSTRAP_PASSWORD`
-
-Bootstrap credentials are used only when the corresponding account does not
-exist. Passwords and signing secrets belong in Railway Variables and must not
-be committed to the repository.
+Previous account databases are no longer used. This change does not delete any existing database or migrate its holdings; data already saved in the browser remains available locally.
