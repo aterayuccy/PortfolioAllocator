@@ -1520,3 +1520,39 @@ footer {
     height: 40px;
   }
 }
+
+/* Direct-entry layout overrides */
+.compact-hero {
+  padding-top: clamp(28px, 4vw, 48px);
+  padding-bottom: clamp(32px, 4vw, 52px);
+}
+
+.step-search-card {
+  margin-top: 0;
+}
+
+.quality-step {
+  overflow: hidden;
+  border: 1px solid #315064;
+  background: #101d24;
+}
+
+.quality-step > .screen-result-head,
+.quality-step > .screen-table,
+.quality-step > .quality-filter,
+.quality-step > .score-settings {
+  margin: 0;
+  border: 0;
+}
+
+.quality-step > .period-result-note {
+  margin: 0;
+  border-right: 0;
+  border-left: 0;
+}
+
+.quality-step > .screen-table,
+.quality-step > .quality-filter,
+.quality-step > .score-settings {
+  border-top: 1px solid #315064;
+}
