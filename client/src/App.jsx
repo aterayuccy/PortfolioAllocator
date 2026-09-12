@@ -121,7 +121,7 @@ function AllocationPie({ allocations }) {
 }
 
 function App() {
-  const [symbol, setSymbol] = useState('2330.TW')
+  const [symbol, setSymbol] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -254,16 +254,17 @@ function App() {
       <section className="hero compact-hero">
         <div className="step-search-card" id="step-search">
           <div className="step-heading compact-step-heading"><span className="step-number">01</span><div><small>第一步</small><h2>搜尋投資標的</h2></div></div>
-          <form onSubmit={search} className="search"><span>⌕</span><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="例如 2330.TW、AAPL" aria-label="標的代號"/><button disabled={loading}>{loading ? '取得中…' : '搜尋並加入'}</button></form>
+          <form onSubmit={search} className="search"><span>⌕</span><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="例如 2330、AAPL" aria-label="標的代號"/><button disabled={loading}>{loading ? '取得中…' : '搜尋並加入'}</button></form>
         </div>
       </section>
       <section className="dashboard simplified-dashboard">
         {error && <div className="error">{error}</div>}{notice && <div className="success-notice">{notice}</div>}
-        {!screenResult && !screening && <div className="empty"><span>01</span><h2>{targets.length ? '正在準備你的清單' : '從搜尋一檔股票開始'}</h2><p>{targets.length ? '取得財報後會自動完成品質評分。' : '可輸入 2330.TW、AAPL 等股票代號。'}</p></div>}
+        {!screenResult && !screening && <div className="empty"><h2>{targets.length ? '正在準備你的清單' : '從搜尋一檔股票開始'}</h2><p>{targets.length ? '取得財報後會自動完成品質評分。' : '可輸入 2330、AAPL 等股票代號。'}</p></div>}
         {screening && <div className="loading"><i/><div><strong>正在更新品質分數</strong><span>取得 Yahoo Finance 年度財報資料…</span></div></div>}
         {screenResult && <section className="screen-result">
           <section className="quality-step">
           <div className="screen-result-head"><div className="step-heading"><span className="step-number">02</span><div><small>第二步</small><h2 title="只顯示四項基本面皆可計算的個股品質分數">展示基本面與品質分數</h2><p>並列經濟利差、投入資本年增、營業收入年增、毛利率年增，以及各標的的綜合品質分數。</p></div></div><strong>{displayedRows.length}<small> 檔標的</small></strong></div>
+          <div className="quality-step-body">
           <div className="period-result-note">本次基準：{screenResult.latestYear || '最新年度'} vs {screenResult.comparisonYear || '前一年度'} <span title="Yahoo Finance 不同市場的財報年度可能不同，實際以各標的可取得年度為準">ⓘ</span></div>
           <div className="screen-table"><div className="screen-table-head"><span>標的</span><span title="最新年度 ROIC − 最新 WACC">經濟利差</span><span title="最新年度投入資本相較前一年度的成長">投入資本年增</span><span title="最新年度營業收入相較前一年度的成長">營業收入年增</span><span title="最新年度毛利率相較前一年度的變化">毛利率年增</span><span>品質分數</span><span>操作</span></div>
             {displayedRows.map((row) => { const spread = Number.isFinite(row.economicSpreadLatest) ? formatPercent(row.economicSpreadLatest) : '資料不足'; const capital = Number.isFinite(row.investedCapitalGrowth) ? `${row.investedCapitalGrowth >= 0 ? '+' : ''}${formatPercent(row.investedCapitalGrowth)}` : '資料不足'; const revenue = Number.isFinite(row.latestYearRevenueGrowth) ? `${row.latestYearRevenueGrowth >= 0 ? '+' : ''}${formatPercent(row.latestYearRevenueGrowth)}` : '資料不足'; const margin = Number.isFinite(row.grossMarginYoYChange) ? `${row.grossMarginYoYChange >= 0 ? '+' : ''}${formatPercent(row.grossMarginYoYChange)}` : '資料不足'; return <div className="screen-row" key={row.symbol}><span><strong>{row.symbol}</strong><small>{row.assetTypeLabel || '個股'} · {row.name}</small></span><span data-label="經濟利差" title={`最新經濟利差 ${formatPercent(row.economicSpreadLatest)}`}><strong>{spread}</strong></span><span data-label="投入資本年增" title={`最新投入資本 ${formatNumber(row.investedCapitalLatest, 0)}；前一年度 ${formatNumber(row.investedCapitalHistorical, 0)}`}><strong>{capital}</strong></span><span data-label="營業收入年增" title={`最新營收 ${formatNumber(row.revenueLatest, 0)}；前一年度 ${formatNumber(row.revenueHistorical, 0)}`}><strong>{revenue}</strong></span><span data-label="毛利率年增" title={`最新毛利率 ${formatPercent(row.grossMarginCurrent)}；前一年度 ${formatPercent(row.grossMarginHistorical)}`}><strong>{margin}</strong></span><b data-label="品質分數" className={row.qualityScore == null ? 'incomplete' : 'quality-score'} title="依目前權重計算的品質分數">{formatNumber(row.qualityScore, 1)}</b><button className="row-remove" onClick={() => removeTarget(row.symbol)} title={`移除 ${row.symbol}`} aria-label={`移除 ${row.symbol}`}>×</button></div> })}
@@ -283,6 +284,7 @@ function App() {
               </div>
             </div>
           </details>
+          </div>
           </section>
           <div className="allocation-result configurable-allocation"><div className="allocation-intro"><div className="step-heading"><span className="step-number">03</span><div><small>第三步</small><h3>將品質分數轉為配置比例</h3></div></div><p>以等權配置為基礎，再依個股品質分數調整權重，讓高品質股票獲得較高配置比例。</p></div>
             {allocations.length ? <AllocationPie allocations={allocations}/> : <p className="no-allocation">沒有通過全部條件的標的，因此暫無建議比例。</p>}

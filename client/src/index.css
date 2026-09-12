@@ -1718,3 +1718,107 @@ footer {
     margin-inline: 18px;
   }
 }
+
+/* Unified workflow frames */
+.hero,
+.dashboard {
+  padding-inline: clamp(24px, 8vw, 120px);
+}
+
+.step-search-card,
+.screen-result {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin-inline: 0;
+}
+
+.step-search-card .search {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.step-search-card .search:focus-within {
+  border-color: #8dd2ff;
+  box-shadow: 0 0 0 3px rgba(141, 210, 255, .14);
+}
+
+.step-search-card .search input:focus-visible {
+  outline: 0;
+}
+
+.empty h2 {
+  margin-top: 0;
+}
+
+.quality-step,
+.configurable-allocation,
+.rebalance-workspace {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quality-step-body {
+  overflow: hidden;
+  margin: 0 30px 30px;
+  border: 1px solid #315064;
+  background: #0c171d;
+}
+
+.quality-step-body > .period-result-note,
+.quality-step-body > .screen-table,
+.quality-step-body > .quality-filter,
+.quality-step-body > .score-settings {
+  margin: 0;
+  border: 0;
+}
+
+.quality-step-body > .screen-table,
+.quality-step-body > .quality-filter,
+.quality-step-body > .score-settings {
+  border-top: 1px solid #315064;
+}
+
+.configurable-allocation > .allocation-intro {
+  padding: 28px 30px;
+}
+
+.configurable-allocation > .allocation-chart {
+  width: auto;
+  margin: 0 30px 20px;
+  padding: 24px;
+  border: 1px solid #315064;
+  background: #0c171d;
+}
+
+.configurable-allocation > .allocation-settings.collapsible-settings {
+  margin: 0 30px 20px;
+}
+
+.configurable-allocation > .concentration-warning {
+  width: auto;
+  margin: 0 30px 30px;
+  padding: 14px 16px;
+  border: 1px solid #654d2e;
+}
+
+@media (max-width: 640px) {
+  .hero,
+  .dashboard {
+    padding-inline: 18px;
+  }
+
+  .quality-step-body,
+  .configurable-allocation > .allocation-chart,
+  .configurable-allocation > .allocation-settings.collapsible-settings,
+  .configurable-allocation > .concentration-warning {
+    margin-right: 18px;
+    margin-left: 18px;
+  }
+
+  .quality-step-body,
+  .configurable-allocation > .concentration-warning {
+    margin-bottom: 18px;
+  }
+}
