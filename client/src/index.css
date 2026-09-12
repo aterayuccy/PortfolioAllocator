@@ -2191,3 +2191,43 @@ footer {
     white-space: normal;
   }
 }
+
+/* Disclosure controls use a fixed-height action row */
+.disclosure-actions {
+  position: absolute;
+  top: 0;
+  right: 78px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 68px;
+}
+
+.disclosure-actions .disclosure-reset {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+}
+
+.score-settings > summary::after,
+.collapsible-settings > summary::after {
+  content: '›';
+  font-family: Arial, sans-serif;
+  font-size: 1.45rem;
+  line-height: 1;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.score-settings[open] > summary::after,
+.collapsible-settings[open] > summary::after {
+  content: '›';
+  transform: translateY(-50%) rotate(-90deg);
+}
+
+@media (max-width: 640px) {
+  .disclosure-actions {
+    right: 64px;
+  }
+}
