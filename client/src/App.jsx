@@ -10,15 +10,7 @@ const DEFAULT_NORMALIZATION_BOUNDS = {
   revenue: { min: -40, max: 40 },
   margin: { min: -10, max: 10 },
 }
-const USERNAME_PATTERN = /^[\p{L}][\p{L}\p{N}_-]{2,31}$/u
-const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,64}$/
-
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
-
-function avatarColor(username) {
-  const hue = [...username].reduce((hash, character) => (hash * 31 + character.codePointAt(0)) % 360, 210)
-  return `hsl(${hue} 58% 43%)`
-}
 
 function loadNormalizationBounds() {
   try {
@@ -127,61 +119,7 @@ function AllocationPie({ allocations }) {
   </div>
 }
 
-function AuthScreen({ onAuthenticated }) {
-  const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ username: '', password: '', confirmPassword: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function submit(event) {
-    event.preventDefault(); setLoading(true); setError('')
-    const username = form.username.trim()
-    if (mode === 'register' && !USERNAME_PATTERN.test(username)) {
-      setError('使用者名稱需為 3–32 個字，以中英文字開頭，可使用數字、底線或連字號。'); setLoading(false); return
-    }
-    if (mode === 'register' && !PASSWORD_PATTERN.test(form.password)) {
-      setError('密碼需為 8–64 個字元，只能使用英文字母與數字，且兩者都要包含。'); setLoading(false); return
-    }
-    if (mode === 'register' && form.password !== form.confirmPassword) {
-      setError('兩次輸入的密碼不一致。'); setLoading(false); return
-    }
-    try {
-      const requestBody = mode === 'register'
-        ? { username, password: form.password, confirmPassword: form.confirmPassword }
-        : { username, password: form.password }
-      const response = await fetch(`${API_ROOT}/auth/${mode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || '目前無法完成驗證。')
-      await onAuthenticated(payload)
-    } catch (requestError) {
-      setError(requestError instanceof TypeError ? '無法連線到服務，請稍後再試。' : requestError.message || '網路連線失敗，請稍後再試。')
-    }
-    finally { setLoading(false) }
-  }
-
-  return <div className="auth-shell">
-    <div className="auth-brand"><span>PA</span><strong>Portfolio Allocator</strong></div>
-    <main className="auth-card">
-      <div className="eyebrow">PERSONAL PORTFOLIO</div>
-      <h1>{mode === 'login' ? <>登入你的研究清單</> : <>建立你的研究清單</>}</h1>
-      <p>{mode === 'login' ? '登入後管理標的與持有股數。' : '註冊後即可保存喜歡的標的與持倉。'}</p>
-      <form onSubmit={submit}>
-        <label><span>使用者名稱</span><input required minLength="3" maxLength={mode === 'register' ? 32 : 254} autoComplete="username" autoCapitalize="none" spellCheck="false" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} placeholder="輸入使用者名稱"/>{mode === 'register' && <small className="field-hint">3–32 字，以中英文字開頭，可使用數字、底線與連字號</small>}</label>
-        <label><span>密碼</span><input required minLength="8" maxLength="64" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="8–64 位英文字母與數字"/>{mode === 'register' && <small className="field-hint">須同時包含英文字母與數字</small>}</label>
-        {mode === 'register' && <label><span>再次輸入密碼</span><input required minLength="8" maxLength="64" type="password" autoComplete="new-password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} placeholder="再次確認密碼"/></label>}
-        {error && <div className="auth-error">{error}</div>}
-        <button disabled={loading}>{loading ? '處理中…' : mode === 'login' ? '登入 →' : '註冊 →'}</button>
-      </form>
-      <div className="auth-switch">{mode === 'login' ? <>還沒註冊？<button type="button" onClick={() => { setMode('register'); setForm({ username: '', password: '', confirmPassword: '' }); setError('') }}>前往註冊</button></> : <>已經有帳號？<button type="button" onClick={() => { setMode('login'); setForm({ username: '', password: '', confirmPassword: '' }); setError('') }}>返回登入</button></>}</div>
-    </main>
-    <small className="auth-footnote">資料僅用於你的個人研究清單。</small>
-  </div>
-}
-
 function App() {
-  const [token, setToken] = useState(() => localStorage.getItem('market-lens-token') || '')
-  const [user, setUser] = useState(() => { try { return JSON.parse(localStorage.getItem('market-lens-user') || 'null') } catch { return null } })
-  const [portfolioLoaded, setPortfolioLoaded] = useState(false)
   const [symbol, setSymbol] = useState('2330.TW')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -201,25 +139,11 @@ function App() {
   useEffect(() => { localStorage.setItem('market-lens-normalization-bounds', JSON.stringify(normalizationBounds)) }, [normalizationBounds])
   useEffect(() => { localStorage.setItem('market-lens-equal-share', String(equalShare)) }, [equalShare])
   useEffect(() => { localStorage.setItem('market-lens-quantities', JSON.stringify(quantities)) }, [quantities])
-  useEffect(() => { if (token) loadPortfolio(token); else setPortfolioLoaded(false) }, [token])
   useEffect(() => {
-    if (!token || !portfolioLoaded) return undefined
-    const timer = setTimeout(async () => {
-      try {
-        const body = targets.map((target) => ({ ...target, quantity: Math.max(0, Number(quantities[target.symbol] || 0)) }))
-        const response = await fetch(`${API_ROOT}/portfolio`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) })
-        if (response.status === 401) logout()
-        else if (!response.ok) setError('持倉暫時無法同步，登入狀態已保留，稍後會再嘗試。')
-      } catch { setError('持倉暫時無法同步，登入狀態已保留，稍後會再嘗試。') }
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [targets, quantities, token, portfolioLoaded])
-  useEffect(() => {
-    if (!portfolioLoaded) return undefined
     if (!targets.length) { setScreenResult(null); return undefined }
     const timer = setTimeout(() => screenTargets(targets), 250)
     return () => clearTimeout(timer)
-  }, [targets, portfolioLoaded])
+  }, [targets])
 
   const allocations = useMemo(() => buildAllocations(screenResult?.rows, factorWeights, normalizationBounds, equalShare), [screenResult, factorWeights, normalizationBounds, equalShare])
   const factorTotal = Object.values(factorWeights).reduce((sum, value) => sum + Number(value || 0), 0)
@@ -317,29 +241,8 @@ function App() {
     setScreenResult({ rows, fxRates, latestYear: basis?.latestYear, comparisonYear: basis?.comparisonYear, screenedAt: new Date().toISOString() }); setScreening(false)
   }
 
-  async function loadPortfolio(activeToken) {
-    try {
-      const response = await fetch(`${API_ROOT}/portfolio`, { headers: { Authorization: `Bearer ${activeToken}` } })
-      if (response.status === 401) { logout(); return }
-      if (!response.ok) throw new Error('持倉讀取失敗')
-      const holdings = await response.json()
-      setTargets(holdings.map(({ symbol: savedSymbol, name }) => ({ symbol: savedSymbol, name })))
-      setQuantities(Object.fromEntries(holdings.map((holding) => [holding.symbol, holding.quantity || ''])))
-    } catch { setError('持倉暫時無法同步，登入狀態已保留，稍後會再嘗試。') }
-    finally { setPortfolioLoaded(true) }
-  }
-
-  async function authenticated(payload) { localStorage.setItem('market-lens-token', payload.token); localStorage.setItem('market-lens-user', JSON.stringify({ username: payload.username })); setUser({ username: payload.username }); setToken(payload.token) }
-  function logout() { localStorage.removeItem('market-lens-token'); localStorage.removeItem('market-lens-user'); setToken(''); setUser(null); setTargets([]); setQuantities({}); setScreenResult(null); setPortfolioLoaded(false) }
-
-  if (!token) return <AuthScreen onAuthenticated={authenticated}/>
-  if (!portfolioLoaded) return <div className="session-loading"><i/><span>正在載入你的研究清單…</span></div>
-
-  const displayedUsername = user?.username || user?.name || '使用者'
-  const avatarLetter = [...displayedUsername.trim()][0]?.toUpperCase() || '使'
-
   return <div className="app">
-    <header><a className="brand" href="#top"><span>PA</span><span className="brand-name">Portfolio Allocator</span></a><div className="account-nav"><button className="logout-button" onClick={logout}>登出</button><div className="user-profile"><span className="user-avatar" style={{ backgroundColor: avatarColor(displayedUsername) }}>{avatarLetter}</span><span className="user-profile-name" title={displayedUsername}>{displayedUsername}</span></div></div></header>
+    <header><a className="brand" href="#top"><span>PA</span><span className="brand-name">Portfolio Allocator</span></a></header>
     <main id="top">
       <section className="hero compact-hero"><div className="eyebrow">WATCHLIST RESEARCH</div><h1>用年增看懂<br/><em>研究清單的變化</em></h1><p>目前只支援個股；輸入 Yahoo Finance 代號後自動加入清單，個股以最新年度與前一年度的年增資料計算品質分數。</p><form onSubmit={search} className="search"><span>⌕</span><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="例如 2330.TW、AAPL" aria-label="標的代號"/><button disabled={loading}>{loading ? '取得中…' : '搜尋並加入'}</button></form><div className="quick"><span>快速加入</span>{['2330.TW', 'AAPL', 'NVDA', 'MSFT'].map((item) => <button key={item} onClick={(event) => search(event, item)}>{item}</button>)}</div></section>
       <section className="dashboard simplified-dashboard">
@@ -375,7 +278,7 @@ function App() {
           <p className="method-warning">資料來源為 Yahoo Finance。目前只處理個股；四項基本面指標（經濟利差、投入資本年增、營業收入年增、毛利率年增）必須全部可計算，否則不會列入研究清單。這些數值是研究輔助，不是投資建議。</p>
         </section>}
       </section>
-    </main><footer><span>Portfolio Allocator</span><p>研究工具會保留你的清單與股數，實際交易前請自行確認資料與風險。</p></footer>
+    </main><footer><span>Portfolio Allocator</span><p>清單與股數僅儲存在目前瀏覽器，實際交易前請自行確認資料與風險。</p></footer>
   </div>
 }
 
