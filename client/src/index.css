@@ -842,6 +842,156 @@ footer {
   }
 }
 
+/* Workflow alignment and disclosure actions */
+.step-search-card {
+  padding: 30px;
+}
+
+.step-search-card .search {
+  height: 68px;
+  padding: 0 0 0 21px;
+}
+
+.step-search-card .search button {
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+}
+
+.quality-filter {
+  padding-right: 30px;
+  padding-left: 30px;
+}
+
+.quality-filter h3,
+.score-settings > summary strong {
+  font-size: 1.18rem;
+  line-height: 1.35;
+}
+
+.disclosure-shell {
+  position: relative;
+  background: #0c171d;
+}
+
+.quality-step-body > .score-disclosure {
+  border-top: 1px solid #315064;
+}
+
+.disclosure-shell > details {
+  border: 0;
+}
+
+.disclosure-shell > details > summary {
+  padding-right: 182px;
+  padding-left: 30px;
+}
+
+.disclosure-reset {
+  position: absolute;
+  top: 14px;
+  right: 76px;
+  z-index: 2;
+}
+
+.screen-table-head,
+.screen-row {
+  grid-template-columns: 1.3fr repeat(4, .8fr) .65fr 34px;
+  padding-right: 30px;
+  padding-left: 30px;
+}
+
+.screen-table-head > span:last-child {
+  text-align: center;
+}
+
+.screen-row .row-remove {
+  justify-self: center;
+}
+
+.normalization-card small {
+  order: 3;
+}
+
+.normalization-card code {
+  order: 4;
+}
+
+.configurable-allocation > .allocation-intro {
+  display: block;
+}
+
+.allocation-step-body {
+  overflow: hidden;
+  margin: 0 30px 30px;
+  border: 1px solid #315064;
+  background: #0c171d;
+}
+
+.configurable-allocation > .allocation-step-body > .allocation-chart,
+.allocation-step-body > .allocation-chart {
+  width: 100%;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: transparent;
+}
+
+.allocation-step-body > .allocation-disclosure {
+  border-top: 1px solid #315064;
+}
+
+.allocation-step-body .allocation-settings.collapsible-settings {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.allocation-step-body > .concentration-warning {
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  border-top: 1px solid #654d2e;
+}
+
+.allocation-step-body > .no-allocation {
+  margin: 0;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .step-search-card {
+    padding: 18px;
+  }
+
+  .disclosure-shell > details > summary {
+    min-height: 116px;
+    padding: 16px 18px 62px;
+  }
+
+  .disclosure-reset {
+    top: auto;
+    right: 64px;
+    bottom: 12px;
+  }
+
+  .allocation-step-body {
+    margin-right: 18px;
+    margin-bottom: 18px;
+    margin-left: 18px;
+  }
+
+  .screen-table-head,
+  .screen-row {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+}
+
 @media (max-width: 900px) {
   .screen-table-head,
   .screen-row {
@@ -1821,4 +1971,10 @@ footer {
   .configurable-allocation > .concentration-warning {
     margin-bottom: 18px;
   }
+}
+
+.quality-filter h3,
+.score-settings > summary strong {
+  font-size: 1.18rem;
+  line-height: 1.35;
 }
