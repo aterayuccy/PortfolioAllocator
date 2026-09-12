@@ -126,19 +126,21 @@ function App() {
   const [notice, setNotice] = useState('')
   const [screening, setScreening] = useState(false)
   const [screenResult, setScreenResult] = useState(null)
-  const [targets, setTargets] = useState(() => { try { return JSON.parse(localStorage.getItem('market-lens-favorites') || '[]') } catch { return [] } })
+  const [targets, setTargets] = useState([])
   const [factorWeights, setFactorWeights] = useState(() => { try { return { ...DEFAULT_FACTOR_WEIGHTS, ...(JSON.parse(localStorage.getItem('market-lens-factor-weights')) || {}) } } catch { return DEFAULT_FACTOR_WEIGHTS } })
   const [normalizationBounds, setNormalizationBounds] = useState(loadNormalizationBounds)
   const [equalShare, setEqualShare] = useState(() => Number(localStorage.getItem('market-lens-equal-share') || 70))
-  const [quantities, setQuantities] = useState(() => { try { return JSON.parse(localStorage.getItem('market-lens-quantities')) || {} } catch { return {} } })
+  const [quantities, setQuantities] = useState({})
   const [cashFlow, setCashFlow] = useState(0)
   const [minimumQualityScore, setMinimumQualityScore] = useState('')
 
-  useEffect(() => { localStorage.setItem('market-lens-favorites', JSON.stringify(targets)) }, [targets])
+  useEffect(() => {
+    localStorage.removeItem('market-lens-favorites')
+    localStorage.removeItem('market-lens-quantities')
+  }, [])
   useEffect(() => { localStorage.setItem('market-lens-factor-weights', JSON.stringify(factorWeights)) }, [factorWeights])
   useEffect(() => { localStorage.setItem('market-lens-normalization-bounds', JSON.stringify(normalizationBounds)) }, [normalizationBounds])
   useEffect(() => { localStorage.setItem('market-lens-equal-share', String(equalShare)) }, [equalShare])
-  useEffect(() => { localStorage.setItem('market-lens-quantities', JSON.stringify(quantities)) }, [quantities])
   useEffect(() => {
     if (!targets.length) { setScreenResult(null); return undefined }
     const timer = setTimeout(() => screenTargets(targets), 250)
@@ -278,7 +280,7 @@ function App() {
           <p className="method-warning">資料來源為 Yahoo Finance。目前只處理個股；四項基本面指標（經濟利差、投入資本年增、營業收入年增、毛利率年增）必須全部可計算，否則不會列入研究清單。這些數值是研究輔助，不是投資建議。</p>
         </section>}
       </section>
-    </main><footer><span>Portfolio Allocator</span><p>清單與股數僅儲存在目前瀏覽器，實際交易前請自行確認資料與風險。</p></footer>
+    </main><footer><span>Portfolio Allocator</span><p>清單與股數會在重新整理後清除，實際交易前請自行確認資料與風險。</p></footer>
   </div>
 }
 
