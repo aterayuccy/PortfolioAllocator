@@ -869,6 +869,75 @@ footer {
   line-height: 1.35;
 }
 
+/* Final control alignment */
+.screen-result-head,
+.configurable-allocation > .allocation-intro {
+  padding-right: 30px;
+  padding-left: 30px;
+}
+
+.disclosure-shell > details > summary {
+  position: relative;
+}
+
+.disclosure-shell > details > summary::after {
+  position: absolute;
+  top: 17px;
+  right: 30px;
+}
+
+.disclosure-shell > .disclosure-reset {
+  top: 14px;
+  right: 78px;
+}
+
+.screen-table-head,
+.screen-row {
+  grid-template-columns: 1.3fr repeat(4, .8fr) .65fr 34px;
+  padding-right: 30px;
+}
+
+.screen-row .row-remove {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.allocation-step-body,
+.allocation-step-body > .allocation-chart,
+.allocation-step-body > .allocation-disclosure,
+.allocation-step-body .collapsible-settings > summary,
+.allocation-step-body .collapsible-settings-body {
+  background: transparent;
+}
+
+.allocation-step-body > .concentration-warning {
+  margin: 0;
+  padding: 16px 24px 20px;
+  border: 0;
+  color: #d3ad72;
+  background: transparent;
+}
+
+@media (max-width: 640px) {
+  .screen-result-head,
+  .configurable-allocation > .allocation-intro {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .disclosure-shell > details > summary::after {
+    top: auto;
+    right: 18px;
+    bottom: 15px;
+  }
+
+  .disclosure-shell > .disclosure-reset {
+    right: 64px;
+  }
+}
+
 .disclosure-shell {
   position: relative;
   background: #0c171d;
