@@ -2258,13 +2258,18 @@ footer {
 
 .score-settings > summary::after,
 .collapsible-settings > summary::after {
-  content: '⌄';
+  content: '';
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 6 8 10.5 12.5 6' fill='none' stroke='%238dd2ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
   transform: translateY(-50%);
 }
 
 .score-settings[open] > summary::after,
 .collapsible-settings[open] > summary::after {
-  content: '⌃';
+  content: '';
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 10 8 5.5 12.5 10' fill='none' stroke='%238dd2ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   transform: translateY(-50%);
 }
 
