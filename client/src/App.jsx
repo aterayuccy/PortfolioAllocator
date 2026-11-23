@@ -1,301 +1,81 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
+import { canonicalSymbol, rebalance } from './rebalance'
 
-const API_ROOT = '/api'
-const API = `${API_ROOT}/stocks`
-const RESEARCH_PERIOD_YEARS = 1
-const DEFAULT_EQUAL_SHARE = 70
-const DEFAULT_FACTOR_WEIGHTS = { spread: 40, capital: 20, revenue: 25, margin: 15 }
-const DEFAULT_NORMALIZATION_BOUNDS = {
-  spread: { min: -10, max: 30 },
-  capital: { min: -50, max: 50 },
-  revenue: { min: -40, max: 40 },
-  margin: { min: -10, max: 10 },
-}
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+const number = (value, digits = 2) => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: digits }).format(value)
+const newRow = () => ({ id: crypto.randomUUID(), symbol: '', weight: '', quantity: '0', price: '', currency: 'TWD', fx: '1', quoteNote: '' })
 
-function loadNormalizationBounds() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('market-lens-normalization-bounds') || '{}')
-    return Object.fromEntries(Object.entries(DEFAULT_NORMALIZATION_BOUNDS).map(([key, defaults]) => {
-      const min = Number(saved?.[key]?.min)
-      const max = Number(saved?.[key]?.max)
-      return [key, Number.isFinite(min) && Number.isFinite(max) && max > min ? { min, max } : defaults]
-    }))
-  } catch {
-    return DEFAULT_NORMALIZATION_BOUNDS
-  }
-}
-
-function normalizeScore(value, bounds) {
-  const min = Number(bounds?.min)
-  const max = Number(bounds?.max)
-  if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max) || max <= min) return null
-  return clamp((value - min) / (max - min) * 100, 0, 100)
-}
-
-function formatNumber(value, digits = 2) {
-  if (value == null || Number.isNaN(Number(value))) return '—'
-  return new Intl.NumberFormat('zh-TW', { maximumFractionDigits: digits }).format(Number(value))
-}
-
-function formatPercent(value, digits = 2) {
-  return value == null || Number.isNaN(Number(value)) ? '—' : `${formatNumber(value, digits)}%`
-}
-
-function factorScore(row, weights, normalizationBounds) {
-  if (row?.assetType !== 'STOCK') return null
-  const scores = {
-    spread: Number.isFinite(row?.economicSpreadLatest) ? normalizeScore(row.economicSpreadLatest, normalizationBounds.spread)
-      : Number.isFinite(row?.roic) && Number.isFinite(row?.wacc) ? normalizeScore(row.roic - row.wacc, normalizationBounds.spread) : null,
-    capital: Number.isFinite(row?.investedCapitalGrowth) ? normalizeScore(row.investedCapitalGrowth, normalizationBounds.capital)
-      : Number.isFinite(row?.investedCapitalGrowthPeriod) ? normalizeScore(row.investedCapitalGrowthPeriod, normalizationBounds.capital) : null,
-    revenue: Number.isFinite(row?.latestYearRevenueGrowth) ? normalizeScore(row.latestYearRevenueGrowth, normalizationBounds.revenue)
-      : Number.isFinite(row?.revenueGrowthPeriod) ? normalizeScore(row.revenueGrowthPeriod, normalizationBounds.revenue) : null,
-    margin: Number.isFinite(row?.grossMarginYoYChange) ? normalizeScore(row.grossMarginYoYChange, normalizationBounds.margin)
-      : Number.isFinite(row?.grossMarginChangePeriod) ? normalizeScore(row.grossMarginChangePeriod, normalizationBounds.margin) : null,
-  }
-  const entries = Object.entries(scores).filter(([, value]) => Number.isFinite(value))
-  if (entries.length !== 4) return null
-  const total = entries.reduce((sum, [key]) => sum + Number(weights[key] || 0), 0)
-  return total ? entries.reduce((sum, [key, value]) => sum + value * Number(weights[key] || 0), 0) / total
-    : entries.length ? entries.reduce((sum, [, value]) => sum + value, 0) / entries.length : null
-}
-
-function evaluateRow(row, weights, normalizationBounds) {
-  const qualityScore = factorScore(row, weights, normalizationBounds)
-  const complete = row?.assetType === 'STOCK' && row?.fundamentalDataComplete === true
-    && Number.isFinite(qualityScore)
-  return { ...row, qualityScore, complete }
-}
-
-function buildAllocations(rows = [], weights, normalizationBounds, equalShare) {
-  const evaluated = rows.map((row) => ({ ...evaluateRow(row, weights, normalizationBounds) }))
-  if (!evaluated.length) return []
-  const scoreTotal = evaluated.reduce((sum, row) => sum + (Number.isFinite(row.qualityScore) ? row.qualityScore : 0), 0)
-  const qualityShare = 100 - equalShare
-  let allocated = 0
-  return evaluated.map((row, index) => {
-    const knownScoreShare = scoreTotal && Number.isFinite(row.qualityScore) ? qualityShare * row.qualityScore / scoreTotal : qualityShare / evaluated.length
-    const raw = equalShare / evaluated.length + knownScoreShare
-    const weight = index === evaluated.length - 1 ? Math.round((100 - allocated) * 10) / 10 : Math.round(raw * 10) / 10
-    allocated += weight
-    return { ...row, weight }
-  }).sort((a, b) => b.weight - a.weight)
-}
-
-function WeightControl({ label, value, onChange, help }) {
-  return <label className="weight-control" title={help}>
-    <span>{label}</span>
-    <div><input type="range" min="0" max="100" value={value} onChange={(event) => onChange(Number(event.target.value))}/><input type="number" min="0" max="100" value={value} onChange={(event) => onChange(clamp(Number(event.target.value) || 0, 0, 100))}/><b>%</b></div>
-  </label>
-}
-
-function NormalizationRangeControl({ label, bounds, unit = '%', onChange }) {
-  return <div className="normalization-card">
-    <strong>{label}</strong>
-    <div className="normalization-range">
-      <label><span>下限</span><input type="number" step="0.1" value={bounds.min} onChange={(event) => onChange('min', event.target.value)}/><b>{unit}</b></label>
-      <i>→</i>
-      <label><span>上限</span><input type="number" step="0.1" value={bounds.max} onChange={(event) => onChange('max', event.target.value)}/><b>{unit}</b></label>
-    </div>
-    <small>{formatNumber(bounds.min, 1)}{unit} 對應 0 分；{formatNumber(bounds.max, 1)}{unit} 對應 100 分。</small>
-    <code>clamp(((指標值 − {formatNumber(bounds.min, 1)}) ÷ ({formatNumber(bounds.max, 1)} − {formatNumber(bounds.min, 1)})) × 100, 0, 100)</code>
-  </div>
-}
-
-const PIE_COLORS = ['#8dd2ff', '#69dba3', '#e8c774', '#ba9bf1', '#ff968d', '#63a6ff', '#9bd06a', '#e68ec8']
-
-function AllocationPie({ allocations, warning }) {
-  let cursor = 0
-  const gradient = allocations.map((row, index) => {
-    const start = cursor
-    cursor += row.weight
-    return `${PIE_COLORS[index % PIE_COLORS.length]} ${start}% ${cursor}%`
-  }).join(', ')
-  return <div className="allocation-chart">
-    <div className="allocation-pie-column"><div className="allocation-pie" style={{ background: `conic-gradient(${gradient})` }}><div><strong>100%</strong><span>配置比例</span></div></div>{warning}</div>
-    <div className="allocation-legend">{allocations.map((row, index) => <div key={row.symbol}>
-      <i style={{ background: PIE_COLORS[index % PIE_COLORS.length] }}/><span><strong>{row.symbol}</strong><small>品質分數 {formatNumber(row.qualityScore, 1)}</small></span><b>{formatPercent(row.weight, 1)}</b>
-    </div>)}</div>
-  </div>
-}
-
-function App() {
-  const [symbol, setSymbol] = useState('')
-  const [loading, setLoading] = useState(false)
+export default function App() {
+  const [rows, setRows] = useState(() => [newRow(), newRow()])
+  const [deposit, setDeposit] = useState('0')
+  const [withdrawal, setWithdrawal] = useState('0')
+  const [wholeShares, setWholeShares] = useState(true)
+  const [result, setResult] = useState(null)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
-  const [screening, setScreening] = useState(false)
-  const [screenResult, setScreenResult] = useState(null)
-  const [targets, setTargets] = useState([])
-  const [factorWeights, setFactorWeights] = useState(() => { try { return { ...DEFAULT_FACTOR_WEIGHTS, ...(JSON.parse(localStorage.getItem('market-lens-factor-weights')) || {}) } } catch { return DEFAULT_FACTOR_WEIGHTS } })
-  const [normalizationBounds, setNormalizationBounds] = useState(loadNormalizationBounds)
-  const [equalShare, setEqualShare] = useState(() => Number(localStorage.getItem('market-lens-equal-share') || DEFAULT_EQUAL_SHARE))
-  const [quantities, setQuantities] = useState({})
-  const [cashFlow, setCashFlow] = useState(0)
-  const [minimumQualityScore, setMinimumQualityScore] = useState('')
-
-  useEffect(() => {
-    localStorage.removeItem('market-lens-favorites')
-    localStorage.removeItem('market-lens-quantities')
-  }, [])
-  useEffect(() => { localStorage.setItem('market-lens-factor-weights', JSON.stringify(factorWeights)) }, [factorWeights])
-  useEffect(() => { localStorage.setItem('market-lens-normalization-bounds', JSON.stringify(normalizationBounds)) }, [normalizationBounds])
-  useEffect(() => { localStorage.setItem('market-lens-equal-share', String(equalShare)) }, [equalShare])
-  useEffect(() => {
-    if (!targets.length) { setScreenResult(null); return undefined }
-    const timer = setTimeout(() => screenTargets(targets), 250)
-    return () => clearTimeout(timer)
-  }, [targets])
-
-  const allocations = useMemo(() => buildAllocations(screenResult?.rows, factorWeights, normalizationBounds, equalShare), [screenResult, factorWeights, normalizationBounds, equalShare])
-  const portfolioRows = useMemo(() => {
-    const rows = allocations.map((row) => {
-      const quantity = Math.max(0, Number(quantities[row.symbol] || 0))
-      const fxRate = row.currency === 'TWD' ? 1 : screenResult?.fxRates?.[row.currency]
-      const unitValue = Number.isFinite(fxRate) ? row.currentPrice * fxRate : null
-      return { ...row, quantity, fxRate, unitValue, currentValue: unitValue == null ? 0 : quantity * unitValue }
-    })
-    const totalValue = rows.reduce((sum, row) => sum + row.currentValue, 0)
-    const targetTotalValue = Math.max(0, totalValue + Number(cashFlow || 0))
-    return rows.map((row) => { const targetValue = targetTotalValue * row.weight / 100; const deltaValue = targetValue - row.currentValue; return { ...row, totalValue, targetTotalValue, targetValue, deltaValue, deltaShares: row.unitValue ? deltaValue / row.unitValue : 0 } })
-  }, [allocations, quantities, screenResult, cashFlow])
-  const portfolioTotal = portfolioRows[0]?.totalValue || 0
-  const targetPortfolioTotal = portfolioRows[0]?.targetTotalValue || 0
-  const displayedRows = useMemo(() => (screenResult?.rows || []).map((row) => evaluateRow(row, factorWeights, normalizationBounds)).sort((a, b) => {
-    const aScore = Number.isFinite(a.qualityScore) ? a.qualityScore : -Infinity
-    const bScore = Number.isFinite(b.qualityScore) ? b.qualityScore : -Infinity
-    return bScore - aScore || a.symbol.localeCompare(b.symbol)
-  }), [screenResult, factorWeights, normalizationBounds])
-
-  function updateNormalizationBound(factor, bound, rawValue) {
-    const value = Number(rawValue)
-    if (!Number.isFinite(value)) return
-    setNormalizationBounds((current) => {
-      const currentRange = current[factor]
-      const nextValue = bound === 'min' ? Math.min(value, currentRange.max - 0.1) : Math.max(value, currentRange.min + 0.1)
-      return { ...current, [factor]: { ...currentRange, [bound]: Math.round(nextValue * 10) / 10 } }
-    })
+  const [loading, setLoading] = useState(false)
+  const invalidate = () => { setResult(null); setError('') }
+  function update(id, field, value) {
+    invalidate()
+    setRows(current => current.map(row => row.id === id ? { ...row, [field]: value, ...(field === 'symbol' ? { price: '', quoteNote: '', currency: '', fx: '' } : { quoteNote: '' }) } : row))
   }
-
-  function resetQualityModel() {
-    setFactorWeights({ ...DEFAULT_FACTOR_WEIGHTS })
-    setNormalizationBounds(Object.fromEntries(Object.entries(DEFAULT_NORMALIZATION_BOUNDS).map(([key, value]) => [key, { ...value }])))
+  async function getQuote(symbol) {
+    const response = await fetch(`/api/stocks/quote/${encodeURIComponent(symbol)}`, { signal: AbortSignal.timeout(20000) })
+    const data = await response.json()
+    if (!response.ok || !Number.isFinite(data.price) || data.price <= 0) throw new Error(data.error || '無有效報價')
+    return data
   }
-
-  async function search(event, quickSymbol) {
-    event?.preventDefault()
-    const target = (quickSymbol || symbol).trim()
-    if (!target) return
-    setSymbol(target.toUpperCase()); setLoading(true); setError(''); setNotice('')
-    try {
-      const response = await fetch(`${API}/${encodeURIComponent(target)}`); const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || '找不到這個標的。')
-      const scored = evaluateRow(payload.bookScreen, factorWeights, normalizationBounds)
-      if (payload.overview?.assetType !== 'STOCK' || !scored.complete) {
-        setNotice(`${target.toUpperCase()} 未加入：目前只接受能完整計算四項基本面指標的個股。`)
-        return
-      }
-      const item = { symbol: payload.overview.symbol, name: payload.overview.name }
-      setTargets((current) => current.some((row) => row.symbol === item.symbol) ? current : [...current, item])
-      setNotice(`${item.symbol} 已加入研究清單，將以最新年度與前一年度的年增資料計算品質分數。`)
-    } catch (requestError) { setError(requestError.message || '網路連線失敗，請稍後再試。') }
-    finally { setLoading(false) }
-  }
-
-  function removeTarget(targetSymbol) { setTargets((current) => current.filter((item) => item.symbol !== targetSymbol)); setScreenResult(null) }
-
-  function applyQualityFilter() {
-    const threshold = Number(minimumQualityScore)
-    if (!Number.isFinite(threshold)) { setError('請先輸入品質分數門檻。'); return }
-    const cutoff = clamp(threshold, 0, 100)
-    const symbolsToRemove = displayedRows.filter((row) => Number.isFinite(row.qualityScore) && row.qualityScore < cutoff).map((row) => row.symbol)
-    if (!symbolsToRemove.length) { setNotice(`目前沒有低於 ${formatNumber(cutoff, 1)} 分的標的。`); return }
-    setTargets((current) => current.filter((target) => !symbolsToRemove.includes(target.symbol)))
-    setScreenResult(null)
-    setNotice(`已移除 ${symbolsToRemove.length} 檔低於 ${formatNumber(cutoff, 1)} 分的標的。`)
-  }
-
-  async function screenTargets(targetList = targets) {
-    if (!targetList.length) return
-    const requestedPeriod = RESEARCH_PERIOD_YEARS
-    setScreening(true); setError(''); setNotice('')
-    let rows = await Promise.all(targetList.map(async (target) => {
+  async function refreshQuotes() {
+    invalidate(); setLoading(true)
+    const updated = await Promise.all(rows.map(async row => {
+      if (!row.symbol.trim()) return row
       try {
-        const response = await fetch(`${API}/${encodeURIComponent(target.symbol)}?periodYears=${requestedPeriod}`); const payload = await response.json()
-        if (!response.ok) throw new Error(payload.error || '資料取得失敗。')
-        return { symbol: target.symbol, name: target.name, currentPrice: payload.overview.price, currency: payload.overview.currency, ...payload.bookScreen }
-      } catch (screenError) { return { symbol: target.symbol, name: target.name, assetType: 'STOCK', fundamentalDataComplete: false, fundamentalPassed: false, dataComplete: false, passed: false, error: screenError.message } }
+        const quote = await getQuote(canonicalSymbol(row.symbol))
+        if (!quote.currency) throw new Error('報價缺少幣別')
+        const fx = quote.currency === 'TWD' ? 1 : (await getQuote(quote.currency === 'USD' ? 'TWD=X' : `${quote.currency}TWD=X`)).price
+        return { ...row, symbol: quote.symbol, price: String(quote.price), currency: quote.currency, fx: String(fx), quoteNote: `報價已更新 ${new Date().toLocaleTimeString('zh-TW')}` }
+      } catch {
+        return { ...row, quoteNote: '取得失敗，請確認或手動填寫股價與匯率。' }
+      }
     }))
-    const invalidSymbols = rows.filter((row) => {
-      const evaluated = evaluateRow(row, factorWeights, normalizationBounds)
-      return row.assetType !== 'STOCK' || !evaluated.complete
-    }).map((row) => row.symbol)
-    if (invalidSymbols.length) {
-      setTargets((current) => current.filter((target) => !invalidSymbols.includes(target.symbol)))
-      setNotice(`${invalidSymbols.length} 檔標的不是個股或四項基本面資料不足，已自動略過。`)
-      rows = rows.filter((row) => !invalidSymbols.includes(row.symbol))
-    }
-    if (!rows.length) {
-      setScreenResult(null)
-      setScreening(false)
-      return
-    }
-    const currencies = [...new Set(rows.map((row) => row.currency).filter((currency) => currency && currency !== 'TWD'))]
-    const fxRates = { TWD: 1 }
-    await Promise.all(currencies.map(async (currency) => { try { const fxSymbol = currency === 'USD' ? 'TWD=X' : `${currency}TWD=X`; const response = await fetch(`${API}/quote/${encodeURIComponent(fxSymbol)}`); const payload = await response.json(); if (response.ok && Number.isFinite(payload.price)) fxRates[currency] = payload.price } catch { /* optional FX */ } }))
-    const basis = rows.find((row) => Number.isFinite(row.latestYear) || Number.isFinite(row.comparisonYear))
-    setScreenResult({ rows, fxRates, latestYear: basis?.latestYear, comparisonYear: basis?.comparisonYear, screenedAt: new Date().toISOString() }); setScreening(false)
+    setRows(updated); setLoading(false)
   }
-
-  return <div className="app">
-    <main id="top">
-      <section className="hero compact-hero">
-        <div className="step-search-card" id="step-search">
-          <div className="step-heading compact-step-heading"><span className="step-number">01</span><div><small>第一步</small><h2>搜尋投資標的</h2><p>輸入股票代號，加入後會自動取得基本面資料。</p></div></div>
-          <form onSubmit={search} className="search"><span>⌕</span><input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder="例如 2330、AAPL" aria-label="標的代號"/><button disabled={loading}>{loading ? '取得中…' : '搜尋並加入'}</button></form>
-        </div>
-      </section>
-      <section className="dashboard simplified-dashboard">
-        {error && <div className="error">{error}</div>}{notice && <div className="success-notice">{notice}</div>}
-        {!screenResult && !screening && <div className="empty"><h2>{targets.length ? '正在準備你的清單' : '從搜尋一檔股票開始'}</h2>{targets.length ? <p>取得財報後會自動完成品質評分。</p> : null}</div>}
-        {screening && <div className="loading"><i/><div><strong>正在更新品質分數</strong><span>取得 Yahoo Finance 年度財報資料…</span></div></div>}
-        {screenResult && <section className="screen-result">
-          <section className="quality-step">
-          <div className="screen-result-head"><div className="step-heading"><span className="step-number">02</span><div><small>第二步</small><h2 title="只顯示四項基本面皆可計算的個股品質分數">展示基本面與品質分數</h2><p>並列經濟利差、投入資本年增、營業收入年增、毛利率年增，以及各標的的綜合品質分數。</p></div></div><strong>{displayedRows.length}<small> 檔標的</small></strong></div>
-          <div className="quality-step-body">
-          <div className="period-result-note">本次基準：{screenResult.latestYear || '最新年度'} vs {screenResult.comparisonYear || '前一年度'} <span title="Yahoo Finance 不同市場的財報年度可能不同，實際以各標的可取得年度為準">ⓘ</span></div>
-          <div className="screen-table"><div className="screen-table-head"><span>標的</span><span title="最新年度 ROIC − 最新 WACC">經濟利差</span><span title="最新年度投入資本相較前一年度的成長">投入資本年增</span><span title="最新年度營業收入相較前一年度的成長">營業收入年增</span><span title="最新年度毛利率相較前一年度的變化">毛利率年增</span><span>品質分數</span><span>操作</span></div>
-            {displayedRows.map((row) => { const spread = Number.isFinite(row.economicSpreadLatest) ? formatPercent(row.economicSpreadLatest) : '資料不足'; const capital = Number.isFinite(row.investedCapitalGrowth) ? `${row.investedCapitalGrowth >= 0 ? '+' : ''}${formatPercent(row.investedCapitalGrowth)}` : '資料不足'; const revenue = Number.isFinite(row.latestYearRevenueGrowth) ? `${row.latestYearRevenueGrowth >= 0 ? '+' : ''}${formatPercent(row.latestYearRevenueGrowth)}` : '資料不足'; const margin = Number.isFinite(row.grossMarginYoYChange) ? `${row.grossMarginYoYChange >= 0 ? '+' : ''}${formatPercent(row.grossMarginYoYChange)}` : '資料不足'; return <div className="screen-row" key={row.symbol}><span><strong>{row.symbol}</strong><small>{row.name}</small></span><span data-label="經濟利差" title={`最新經濟利差 ${formatPercent(row.economicSpreadLatest)}`}><strong>{spread}</strong></span><span data-label="投入資本年增" title={`最新投入資本 ${formatNumber(row.investedCapitalLatest, 0)}；前一年度 ${formatNumber(row.investedCapitalHistorical, 0)}`}><strong>{capital}</strong></span><span data-label="營業收入年增" title={`最新營收 ${formatNumber(row.revenueLatest, 0)}；前一年度 ${formatNumber(row.revenueHistorical, 0)}`}><strong>{revenue}</strong></span><span data-label="毛利率年增" title={`最新毛利率 ${formatPercent(row.grossMarginCurrent)}；前一年度 ${formatPercent(row.grossMarginHistorical)}`}><strong>{margin}</strong></span><b data-label="品質分數" className={row.qualityScore == null ? 'incomplete' : 'quality-score'} title="依目前權重計算的品質分數">{formatNumber(row.qualityScore, 1)}</b><button className="row-remove" onClick={() => removeTarget(row.symbol)} title={`移除 ${row.symbol}`} aria-label={`移除 ${row.symbol}`}>×</button></div> })}
-          </div>
-          <div className="quality-filter"><div><h3>品質分數篩選</h3><p>輸入門檻後，低於該分數的標的會從研究清單移除。</p></div><label><span>最低品質分數</span><input type="number" min="0" max="100" step="0.1" value={minimumQualityScore} onChange={(event) => setMinimumQualityScore(event.target.value)} placeholder="例如 60"/><b>分</b></label><button onClick={applyQualityFilter}>套用並移除</button></div>
-          <div className="disclosure-shell score-disclosure"><div className="disclosure-actions"><button type="button" className="settings-reset disclosure-reset" onClick={resetQualityModel}>恢復預設</button></div><details className="score-settings">
-            <summary><span><strong>調整品質評分模型</strong><small>可展開調整指標比例與標準化上下限</small></span></summary>
-            <div className="score-settings-body">
-              <div className="factor-controls"><WeightControl label="經濟利差" value={factorWeights.spread} onChange={(value) => setFactorWeights((current) => ({ ...current, spread: value }))} help="最新經濟利差越高，品質分數越高。"/><WeightControl label="投入資本年增" value={factorWeights.capital} onChange={(value) => setFactorWeights((current) => ({ ...current, capital: value }))} help="最新年度相較前一年度的投入資本成長。"/><WeightControl label="營業收入年增" value={factorWeights.revenue} onChange={(value) => setFactorWeights((current) => ({ ...current, revenue: value }))} help="最新年度相較前一年度的營業收入成長。"/><WeightControl label="毛利率年增" value={factorWeights.margin} onChange={(value) => setFactorWeights((current) => ({ ...current, margin: value }))} help="最新年度相較前一年度的毛利率變化。"/><p className="settings-help">權重只影響個股品質分數與配置排序；四項基本面任一項無法計算的標的不會列入清單。</p></div>
-              <div className="standardization-formula">
-                <div className="formula-overview"><strong>標準化公式怎麼算</strong><p>下限為 0 分、上限為 100 分，中間值線性換算，超出區間則固定為 0 或 100 分。</p><code>品質分數 = Σ（各指標分數 × 對應權重）÷ 權重總和</code></div>
-                <NormalizationRangeControl label="經濟利差（最新值）" bounds={normalizationBounds.spread} onChange={(bound, value) => updateNormalizationBound('spread', bound, value)}/>
-                <NormalizationRangeControl label="投入資本年增" bounds={normalizationBounds.capital} onChange={(bound, value) => updateNormalizationBound('capital', bound, value)}/>
-                <NormalizationRangeControl label="營業收入年增" bounds={normalizationBounds.revenue} onChange={(bound, value) => updateNormalizationBound('revenue', bound, value)}/>
-                <NormalizationRangeControl label="毛利率年增（百分點）" bounds={normalizationBounds.margin} unit="百分點" onChange={(bound, value) => updateNormalizationBound('margin', bound, value)}/>
-              </div>
-            </div>
-          </details></div>
-          </div>
-          </section>
-          <div className="allocation-result configurable-allocation"><div className="allocation-intro"><div className="step-heading"><span className="step-number">03</span><div><small>第三步</small><h3>將品質分數轉為配置比例</h3><p>以等權配置為基礎，再依個股品質分數調整權重，讓高品質股票獲得較高配置比例。</p></div></div></div>
-            <div className="allocation-step-body">
-              {allocations.length ? <AllocationPie allocations={allocations} warning={allocations.length < 4 ? <p className="concentration-warning">目前只有 {allocations.length} 檔通過，比例可能較集中；不代表應投入全部資產。</p> : null}/> : <p className="no-allocation">沒有通過全部條件的標的，因此暫無建議比例。</p>}
-              <div className="disclosure-shell allocation-disclosure"><div className="disclosure-actions"><button type="button" className="settings-reset disclosure-reset" onClick={() => setEqualShare(DEFAULT_EQUAL_SHARE)}>恢復預設</button></div><details className="allocation-settings allocation-balance-settings collapsible-settings"><summary><span><strong>調整等權配置比例</strong><small>目前為 {equalShare}% 等權＋{100 - equalShare}% 品質集中</small></span></summary><div className="collapsible-settings-body"><div className="balance-control"><WeightControl label="等權配置" value={equalShare} onChange={setEqualShare} help="所有清單標的平均分配的比例。"/><div className="ratio-readout"><strong>{equalShare}%</strong><span>等權</span><i/><strong>{100 - equalShare}%</strong><span>品質集中</span></div><p className="settings-help">預設 70% 等權＋30% 品質集中，可拖曳調整配置風格。</p></div></div></details></div>
-            </div>
-          </div>
-          {allocations.length > 0 && <div className="rebalance-workspace"><div className="rebalance-heading"><div className="step-heading"><span className="step-number">04</span><div><small>第四步</small><h3>根據配置比例計算交易股數</h3><p>填入現有股數與預計投入或提領的金額，系統會換算每檔股票應增加或減少的股數。</p></div></div><div><small>調整後組合市值</small><strong>NT$ {formatNumber(targetPortfolioTotal, 0)}</strong></div></div><div className="cash-flow-control"><label><span>投入／提領現金</span><input type="number" step="1000" value={cashFlow} onChange={(event) => setCashFlow(Number(event.target.value))}/><b>NT$</b></label><small>正數代表投入，負數代表提領。</small></div><div className="rebalance-table"><div className="rebalance-table-head"><span>標的／即時價格</span><span>現有股數</span><span>即時市值／比例</span><span>目標市值／比例</span><span>調整股數</span></div>{portfolioRows.map((row) => <div className="rebalance-row" key={row.symbol}><span><strong>{row.symbol}</strong><small>{row.currency} {formatNumber(row.currentPrice, 4)}</small></span><input type="number" min="0" step="any" value={quantities[row.symbol] ?? ''} placeholder="0" aria-label={`${row.symbol} 現有股數`} onChange={(event) => setQuantities((current) => ({ ...current, [row.symbol]: event.target.value }))}/><span><strong>NT$ {formatNumber(row.currentValue, 0)}</strong><small>{portfolioTotal ? formatPercent(row.currentValue / portfolioTotal * 100) : '0%'}</small></span><span><strong>NT$ {formatNumber(row.targetValue, 0)}</strong><small>{formatPercent(row.weight, 1)}</small></span><b className={row.deltaShares >= 0 ? 'buy' : 'sell'}>{row.unitValue == null ? '匯率不足' : `${row.deltaShares >= 0 ? '增加' : '減少'} ${formatNumber(Math.abs(row.deltaShares), 2)} 股`}</b></div>)}</div></div>}
-          <p className="method-warning">資料來源為 Yahoo Finance。目前只處理個股；四項基本面指標（經濟利差、投入資本年增、營業收入年增、毛利率年增）必須全部可計算，否則不會列入研究清單。這些數值是研究輔助，不是投資建議。</p>
-        </section>}
-      </section>
-    </main>
-  </div>
+  function calculate(event) {
+    event.preventDefault()
+    try { setResult(rebalance(rows, deposit, withdrawal, wholeShares)); setError('') }
+    catch (problem) { setResult(null); setError(problem.message) }
+  }
+  const weightTotal = rows.reduce((sum, row) => sum + (Number(row.weight) || 0), 0)
+  return <main className="calculator">
+    <header><span className="eyebrow">PORTFOLIO ALLOCATOR</span><h1>投資組合再平衡</h1><p>填入持股與目標比例，計算投入或提取資金後，各檔股票需要買賣的股數。</p></header>
+    <form onSubmit={calculate} noValidate>
+      <fieldset disabled={loading}>
+        <section className="panel">
+          <div className="section-heading"><div><span className="step">01</span><h2>股票與目標比例</h2></div><button type="button" onClick={refreshQuotes} disabled={!rows.some(row => row.symbol.trim())}>{loading ? '取得報價中…' : '更新全部報價'}</button></div>
+          <p className="hint">可輸入多檔股票，台股例如 2330、美股例如 AAPL。股價可自動取得或手動輸入；匯率為 1 單位外幣折合多少台幣。</p>
+          <div className="table-scroll"><table className="input-table"><thead><tr>{['股票代號', '目標比例 %', '現有股數', '每股價格', '幣別', '匯率 → TWD', '操作'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>
+            {rows.map((row, index) => <tr key={row.id}>
+              <td><input aria-label={`第 ${index + 1} 檔股票代號`} placeholder="2330 / AAPL" value={row.symbol} onChange={e => update(row.id, 'symbol', e.target.value)}/>{row.quoteNote && <small className="quote-note">{row.quoteNote}</small>}</td>
+              {['weight', 'quantity', 'price'].map((field, i) => <td key={field}><input type="number" min="0" step="any" aria-label={`第 ${index + 1} 檔${['目標比例', '現有股數', '每股價格'][i]}`} value={row[field]} onChange={e => update(row.id, field, e.target.value)}/></td>)}
+              <td><input aria-label={`第 ${index + 1} 檔幣別`} value={row.currency} onChange={e => update(row.id, 'currency', e.target.value.toUpperCase())}/></td>
+              <td><input type="number" min="0" step="any" aria-label={`第 ${index + 1} 檔匯率`} value={row.fx} onChange={e => update(row.id, 'fx', e.target.value)}/></td>
+              <td><button type="button" className="remove" aria-label={`移除第 ${index + 1} 檔`} onClick={() => { invalidate(); setRows(current => current.filter(item => item.id !== row.id)) }}>移除</button></td>
+            </tr>)}
+          </tbody></table></div>
+          <div className="row-actions"><button type="button" onClick={() => { invalidate(); setRows(current => [...current, newRow()]) }}>＋ 新增股票</button><span className={Math.abs(weightTotal - 100) < 0.000001 ? 'valid' : 'hint'}>目標比例合計 <strong>{number(weightTotal, 6)}%</strong> / 100%</span></div>
+        </section>
+        <section className="panel">
+          <div className="section-heading"><div><span className="step">02</span><h2>投入與提取資金</h2></div><span className="hint">計算基準：新台幣 TWD</span></div>
+          <div className="cash-inputs"><label>投入金額（TWD）<input type="number" min="0" step="any" value={deposit} onChange={e => { invalidate(); setDeposit(e.target.value) }}/></label><label>提取金額（TWD）<input type="number" min="0" step="any" value={withdrawal} onChange={e => { invalidate(); setWithdrawal(e.target.value) }}/></label><label>交易單位<select value={wholeShares ? 'whole' : 'fractional'} onChange={e => { invalidate(); setWholeShares(e.target.value === 'whole') }}><option value="whole">整股（1 股）</option><option value="fractional">小數股（理論精確配置）</option></select></label></div>
+          <p className="hint">可同時填入，淨投入＝投入－提取。整股模式將目標持股向下取整，保留餘額現金，不超出可用資金。股數以股計，非張。</p>
+          <button className="primary" type="submit">計算買賣股數 →</button>
+          {error && <p className="error" role="alert">{error}</p>}
+        </section>
+      </fieldset>
+    </form>
+    {result && <section className="panel results" aria-live="polite"><div className="section-heading"><div><span className="step">03</span><h2>再平衡結果</h2></div></div>
+      <div className="summary">{[['現有持股總值', result.currentTotal], ['調整後可配置資金', result.targetTotal], ['買入金額', result.buys], ['賣出金額', result.sells], ['配置後剩餘現金', result.remainingCash]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{number(value)} <small>TWD</small></strong></div>)}</div>
+      <div className="table-scroll"><table><thead><tr>{['股票', '目標比例', '現有股數', '買賣股數', '交易金額 TWD', '調整後股數', '實際比例'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{result.rows.map(row => <tr key={row.id}><td><strong>{row.symbol}</strong></td><td>{number(row.weight, 6)}%</td><td>{number(row.quantity, 8)}</td><td className={row.deltaShares > 0 ? 'buy' : row.deltaShares < 0 ? 'sell' : ''}>{Math.abs(row.deltaShares) < 1e-10 ? '不需交易' : `${row.deltaShares > 0 ? '買入' : '賣出'} ${number(Math.abs(row.deltaShares), 8)} 股`}</td><td>{number(Math.abs(row.tradeValue))}</td><td>{number(row.targetShares, 8)}</td><td>{number(row.actualWeight, 4)}%</td></tr>)}</tbody></table></div>
+      <p className="hint">{wholeShares ? '整股交易可能無法精確達標；實際比例以調整後可配置資金（含剩餘現金）為分母。' : '小數股為理論結果，顯示至小數點後 8 位；實際可交易精度依券商規定。'}{result.targetTotal === 0 ? ' 全數提取後沒有剩餘持股，比例顯示為 0%。' : ''}</p>
+      <p className="hint">依輸入價格與匯率試算，未計手續費、交易稅及價格變動。可先賣出再買入，以取得買入所需資金。</p>
+    </section>}
+  </main>
 }
-
-export default App

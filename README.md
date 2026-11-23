@@ -1,8 +1,8 @@
 # Portfolio Allocator
 
-Research stock fundamentals, calculate quality scores, and mix equal-weight and quality-based portfolio allocations. No account is required.
+Enter multiple stocks, target weights, existing shares, deposits and withdrawals to calculate portfolio rebalancing trades. No account is required. Prices and TWD exchange rates can be fetched or entered manually. Target weights must total 100%. Whole-share mode rounds target holdings down and reports residual cash; fractional mode computes theoretical exact weights. Fees and taxes are excluded.
 
-Watchlists and holdings remain only for the current page session and reset when the page reloads. Scoring settings are saved in the current browser using localStorage.
+Inputs remain only in the current page session and reset when the page reloads. The former fundamental scoring and automatic weight allocation interface has been removed.
 
 ## Local development
 
@@ -31,6 +31,7 @@ The client runs at `http://localhost:5173` and the API at `http://localhost:1010
 
 ```powershell
 cd client
+node --test src/rebalance.test.js
 npm run build
 cd ../server
 .\mvnw.cmd test
