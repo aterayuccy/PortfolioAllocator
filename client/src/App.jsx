@@ -6,8 +6,7 @@ const newRow = () => ({ id: crypto.randomUUID(), symbol: '', weight: '', quantit
 
 export default function App() {
   const [rows, setRows] = useState(() => [newRow(), newRow()])
-  const [deposit, setDeposit] = useState('0')
-  const [withdrawal, setWithdrawal] = useState('0')
+  const [cashFlow, setCashFlow] = useState('0')
   const [wholeShares, setWholeShares] = useState(true)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -43,12 +42,12 @@ export default function App() {
   }
   function calculate(event) {
     event.preventDefault()
-    try { setResult(rebalance(rows, deposit, withdrawal, wholeShares)); setError('') }
+    try { setResult(rebalance(rows, cashFlow, wholeShares)); setError('') }
     catch (problem) { setResult(null); setError(problem.message) }
   }
   const weightTotal = rows.reduce((sum, row) => sum + (Number(row.weight) || 0), 0)
   return <main className="calculator">
-    <header><span className="eyebrow">PORTFOLIO ALLOCATOR</span><h1>投資組合再平衡</h1><p>填入持股與目標比例，計算投入或提取資金後，各檔股票需要買賣的股數。</p></header>
+    <header><span className="eyebrow">PORTFOLIO ALLOCATOR</span><h1>投資組合再平衡</h1><p>填入持股、目標比例與資金變動，計算各檔股票需要買賣的股數。</p></header>
     <form onSubmit={calculate} noValidate>
       <fieldset disabled={loading}>
         <section className="panel">
@@ -66,9 +65,9 @@ export default function App() {
           <div className="row-actions"><button type="button" onClick={() => { invalidate(); setRows(current => [...current, newRow()]) }}>＋ 新增股票</button><span className={Math.abs(weightTotal - 100) < 0.000001 ? 'valid' : 'hint'}>目標比例合計 <strong>{number(weightTotal, 6)}%</strong> / 100%</span></div>
         </section>
         <section className="panel">
-          <div className="section-heading"><div><span className="step">02</span><h2>投入與提取資金</h2></div><span className="hint">計算基準：新台幣 TWD</span></div>
-          <div className="cash-inputs"><label>投入金額（TWD）<input type="number" min="0" step="any" value={deposit} onChange={e => { invalidate(); setDeposit(e.target.value) }}/></label><label>提取金額（TWD）<input type="number" min="0" step="any" value={withdrawal} onChange={e => { invalidate(); setWithdrawal(e.target.value) }}/></label><label>交易單位<select value={wholeShares ? 'whole' : 'fractional'} onChange={e => { invalidate(); setWholeShares(e.target.value === 'whole') }}><option value="whole">整股（1 股）</option><option value="fractional">小數股（理論精確配置）</option></select></label></div>
-          <p className="hint">可同時填入，淨投入＝投入－提取。整股模式將目標持股向下取整，保留餘額現金，不超出可用資金。股數以股計，非張。</p>
+          <div className="section-heading"><div><span className="step">02</span><h2>資金變動</h2></div><span className="hint">計算基準：新台幣 TWD</span></div>
+          <div className="cash-inputs"><label>投入／提取金額（TWD）<input type="number" step="any" value={cashFlow} onChange={e => { invalidate(); setCashFlow(e.target.value) }}/></label><label>交易單位<select value={wholeShares ? 'whole' : 'fractional'} onChange={e => { invalidate(); setWholeShares(e.target.value === 'whole') }}><option value="whole">整股（1 股）</option><option value="fractional">小數股（理論精確配置）</option></select></label></div>
+          <p className="hint">正數代表投入，負數代表提取，0 代表只調整現有持股。整股模式將目標持股向下取整，保留餘額現金，不超出可用資金。股數以股計，非張。</p>
           <button className="primary" type="submit">計算買賣股數 →</button>
           {error && <p className="error" role="alert">{error}</p>}
         </section>

@@ -1,9 +1,9 @@
 export const canonicalSymbol = (value) => /^\d{4,6}$/.test(value.trim()) ? `${value.trim()}.TW` : value.trim().toUpperCase()
 const numeric = (value) => String(value).trim() !== '' && Number.isFinite(Number(value))
 
-export function rebalance(rows, deposit, withdrawal, wholeShares = true) {
+export function rebalance(rows, cashFlow, wholeShares = true) {
   if (!rows.length) throw new Error('請至少新增一檔股票。')
-  if (![deposit, withdrawal].every(value => numeric(value) && Number(value) >= 0)) throw new Error('投入與提取金額必須是大於或等於 0 的數字。')
+  if (!numeric(cashFlow)) throw new Error('本次資金變動必須是有效數字。')
   const symbols = new Set()
   const holdings = rows.map((row, index) => {
     const symbol = canonicalSymbol(row.symbol)
@@ -21,8 +21,8 @@ export function rebalance(rows, deposit, withdrawal, wholeShares = true) {
   const totalWeight = holdings.reduce((sum, row) => sum + row.weight, 0)
   if (Math.abs(totalWeight - 100) > 0.000001) throw new Error(`目標比例合計須為 100%，目前為 ${Number(totalWeight.toFixed(6))}%。`)
   const currentTotal = holdings.reduce((sum, row) => sum + row.currentValue, 0)
-  const targetTotal = currentTotal + Number(deposit) - Number(withdrawal)
-  if (targetTotal < 0) throw new Error('提取金額不可超過現有持股總值加上投入金額。')
+  const targetTotal = currentTotal + Number(cashFlow)
+  if (targetTotal < 0) throw new Error('提取金額不可超過現有持股總值。')
   if (!Number.isFinite(targetTotal) || holdings.some(row => !Number.isFinite(row.unitValue) || !Number.isFinite(row.currentValue))) throw new Error('輸入數值過大，請調整後再計算。')
   const results = holdings.map(row => {
     const idealShares = targetTotal * row.weight / 100 / row.unitValue
