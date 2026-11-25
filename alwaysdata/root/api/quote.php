@@ -24,7 +24,6 @@ curl_setopt_array($handle, [
 ]);
 $body = curl_exec($handle);
 $status = curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-curl_close($handle);
 
 if ($body === false || $status !== 200) {
     http_response_code(502);
