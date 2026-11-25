@@ -1,4 +1,6 @@
-# Portfolio Allocator
+# ShareBalance
+
+[Live app](https://sharebalance.alwaysdata.net/) · [GitHub repository](https://github.com/aterayuccy/ShareBalance)
 
 Enter multiple stocks, target weights, existing shares, deposits and withdrawals to calculate portfolio rebalancing trades. No account is required. Prices and TWD exchange rates can be fetched or entered manually. Target weights must total 100%. Whole-share mode rounds target holdings down and reports residual cash; fractional mode computes theoretical exact weights. Fees and taxes are excluded.
 
@@ -7,6 +9,8 @@ Inputs remain only in the current page session and reset when the page reloads. 
 ## Local development
 
 Prerequisites: Java 21 and Node.js with npm. No database is required.
+
+The Windows checkout is located at `D:\project\ShareBalance`. Open a terminal in that directory before running the commands below.
 
 Start the Spring Boot API:
 
@@ -43,8 +47,8 @@ Run `docker compose up --build` to serve the application at `http://localhost:10
 
 Railway builds the root Dockerfile into one web service. The React client is packaged into Spring Boot. Railway supplies PORT; no database, JWT secret, or bootstrap accounts are required.
 
-The live site is [sharebalance.alwaysdata.net](https://sharebalance.alwaysdata.net/). The alwaysdata deployment is built by `./alwaysdata/build.ps1` for this root site, with document root `/home/sharebalance/portfolioallocator/alwaysdata/root`. It uses a small PHP endpoint for Yahoo Finance quotes instead of running a Java process. The calculator works with manually entered prices if the quote provider is unavailable. The free account is for noncommercial use only; a paid plan is required before offering paid features.
+The alwaysdata deployment is built by `./alwaysdata/build.ps1` for the live site, with document root `/home/sharebalance/portfolioallocator/alwaysdata/root`. This server path is separate from the Windows checkout. It uses a small PHP endpoint for Yahoo Finance quotes instead of running a Java process. The calculator works with manually entered prices if the quote provider is unavailable. The free account is for noncommercial use only; a paid plan is required before offering paid features.
 
-After pushing a new build, enable the paused `PortfolioAllocator manual updates` scheduled task in the `sharebalance` alwaysdata account for one run, check the live site, then pause it again. The task runs `git -C /home/sharebalance/portfolioallocator pull --ff-only origin main`.
+After pushing a new build, enable the paused `ShareBalance manual updates` scheduled task in the `sharebalance` alwaysdata account for one run, check the live site, then pause it again. The task runs `git -C /home/sharebalance/portfolioallocator pull --ff-only origin main`.
 
 Previous account databases are no longer used. Existing browser-saved watchlists and holdings are cleared when the updated site opens.
