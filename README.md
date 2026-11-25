@@ -43,4 +43,6 @@ Run `docker compose up --build` to serve the application at `http://localhost:10
 
 Railway builds the root Dockerfile into one web service. The React client is packaged into Spring Boot. Railway supplies PORT; no database, JWT secret, or bootstrap accounts are required.
 
+For alwaysdata, run `./alwaysdata/build.ps1` to generate the site files. Configure a PHP site at `[account].alwaysdata.net/portfolioallocator` with the document root at `alwaysdata/site` in the checkout. This variant uses a small PHP endpoint for Yahoo Finance quotes so it can share a free alwaysdata account without running a second Java process. The calculator works with manually entered prices if the quote provider is unavailable. The free account is for noncommercial use only; a paid plan is required before offering paid features.
+
 Previous account databases are no longer used. Existing browser-saved watchlists and holdings are cleared when the updated site opens.

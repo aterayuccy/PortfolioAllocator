@@ -18,7 +18,10 @@ export default function App() {
     setRows(current => current.map(row => row.id === id ? { ...row, [field]: value, ...(field === 'symbol' ? { price: '', quoteNote: '', currency: '', fx: '' } : { quoteNote: '' }) } : row))
   }
   async function getQuote(symbol) {
-    const response = await fetch(`/api/stocks/quote/${encodeURIComponent(symbol)}`, { signal: AbortSignal.timeout(20000) })
+    const quoteUrl = import.meta.env.VITE_QUOTE_API === 'php'
+      ? `${import.meta.env.BASE_URL}api/quote.php?symbol=${encodeURIComponent(symbol)}`
+      : `/api/stocks/quote/${encodeURIComponent(symbol)}`
+    const response = await fetch(quoteUrl, { signal: AbortSignal.timeout(20000) })
     const data = await response.json()
     if (!response.ok || !Number.isFinite(data.price) || data.price <= 0) throw new Error(data.error || '無有效報價')
     return data
