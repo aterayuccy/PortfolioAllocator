@@ -49,6 +49,6 @@ Railway builds the root Dockerfile into one web service. The React client is pac
 
 The alwaysdata deployment is built by `./alwaysdata/build.ps1` for the live site, with document root `/home/sharebalance/portfolioallocator/alwaysdata/root`. This server path is separate from the Windows checkout. It uses a small PHP endpoint for Yahoo Finance quotes instead of running a Java process. The calculator works with manually entered prices if the quote provider is unavailable. The free account is for noncommercial use only; a paid plan is required before offering paid features.
 
-After pushing a new build, enable the paused `ShareBalance manual updates` scheduled task in the `sharebalance` alwaysdata account for one run, check the live site, then pause it again. The task runs `git -C /home/sharebalance/portfolioallocator pull --ff-only origin main`.
+After pushing a new build, enable the paused manual update task in the `sharebalance` alwaysdata account for one run, check the live site, then pause it again. The task runs `git -C /home/sharebalance/portfolioallocator pull --ff-only origin main`.
 
 Previous account databases are no longer used. Existing browser-saved watchlists and holdings are cleared when the updated site opens.
