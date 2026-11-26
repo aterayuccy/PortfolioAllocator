@@ -1,7 +1,7 @@
 export const canonicalSymbol = (value) => /^\d{4,6}$/.test(value.trim()) ? `${value.trim()}.TW` : value.trim().toUpperCase()
 const numeric = (value) => String(value).trim() !== '' && Number.isFinite(Number(value))
 
-export function rebalance(rows, cashFlow, wholeShares = true) {
+export function rebalance(rows, cashFlow) {
   if (!rows.length) throw new Error('請至少新增一檔股票。')
   if (!numeric(cashFlow)) throw new Error('本次資金變動必須是有效數字。')
   const symbols = new Set()
@@ -12,7 +12,7 @@ export function rebalance(rows, cashFlow, wholeShares = true) {
     symbols.add(symbol)
     if (!numeric(row.weight) || Number(row.weight) < 0 || Number(row.weight) > 100) throw new Error(`${symbol} 的目標比例須介於 0～100%。`)
     if (!numeric(row.quantity) || Number(row.quantity) < 0) throw new Error(`${symbol} 的現有股數須大於或等於 0。`)
-    if (wholeShares && !Number.isSafeInteger(Number(row.quantity))) throw new Error(`${symbol} 有小數持股，請改用小數股模式。`)
+    if (!Number.isSafeInteger(Number(row.quantity))) throw new Error(`${symbol} 的現有股數必須是整股。`)
     if (![row.price, row.fx].every(value => numeric(value) && Number(value) > 0)) throw new Error(`${symbol} 請填入有效股價及匯率，或取得報價。`)
     if (!row.currency.trim()) throw new Error(`${symbol} 請填入股價幣別。`)
     const unitValue = Number(row.price) * Number(row.fx)
@@ -26,7 +26,7 @@ export function rebalance(rows, cashFlow, wholeShares = true) {
   if (!Number.isFinite(targetTotal) || holdings.some(row => !Number.isFinite(row.unitValue) || !Number.isFinite(row.currentValue))) throw new Error('輸入數值過大，請調整後再計算。')
   const results = holdings.map(row => {
     const idealShares = targetTotal * row.weight / 100 / row.unitValue
-    const targetShares = wholeShares ? Math.floor(idealShares) : idealShares
+    const targetShares = Math.floor(idealShares)
     const deltaShares = targetShares - row.quantity
     const finalValue = targetShares * row.unitValue
     return { ...row, idealShares, targetShares, deltaShares, tradeValue: deltaShares * row.unitValue, finalValue, actualWeight: targetTotal ? finalValue / targetTotal * 100 : 0 }

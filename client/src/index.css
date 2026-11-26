@@ -31,7 +31,7 @@ td { padding: 14px 10px; border-bottom: 1px solid #243945; white-space: nowrap; 
 .remove { padding: 8px; color: #ffb4ac; background: transparent; }
 .valid, .buy { color: #83dfb3; }
 .sell { color: #ffb4ac; }
-.cash-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin-top: 24px; }
+.cash-inputs { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 360px; gap: 22px; margin-top: 24px; }
 .cash-inputs label { display: grid; gap: 10px; font-size: 14px; color: #c8d7df; }
 .primary { margin-top: 10px; background: #8dd2ff; color: #091015; font-weight: 700; padding: 13px 24px; }
 .primary:hover { background: #b1e1ff; }

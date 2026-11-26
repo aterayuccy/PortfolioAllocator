@@ -7,7 +7,6 @@ const newRow = () => ({ id: crypto.randomUUID(), symbol: '', weight: '', quantit
 export default function App() {
   const [rows, setRows] = useState(() => [newRow(), newRow()])
   const [cashFlow, setCashFlow] = useState('0')
-  const [wholeShares, setWholeShares] = useState(true)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -42,7 +41,7 @@ export default function App() {
   }
   function calculate(event) {
     event.preventDefault()
-    try { setResult(rebalance(rows, cashFlow, wholeShares)); setError('') }
+    try { setResult(rebalance(rows, cashFlow)); setError('') }
     catch (problem) { setResult(null); setError(problem.message) }
   }
   const weightTotal = rows.reduce((sum, row) => sum + (Number(row.weight) || 0), 0)
@@ -66,8 +65,8 @@ export default function App() {
         </section>
         <section className="panel">
           <div className="section-heading"><div><span className="step">02</span><h2>資金變動</h2></div><span className="hint">計算基準：新台幣 TWD</span></div>
-          <div className="cash-inputs"><label>投入／提取金額（TWD）<input type="number" step="any" value={cashFlow} onChange={e => { invalidate(); setCashFlow(e.target.value) }}/></label><label>交易單位<select value={wholeShares ? 'whole' : 'fractional'} onChange={e => { invalidate(); setWholeShares(e.target.value === 'whole') }}><option value="whole">整股（1 股）</option><option value="fractional">小數股（理論精確配置）</option></select></label></div>
-          <p className="hint">正數代表投入，負數代表提取，0 代表只調整現有持股。整股模式將目標持股向下取整，保留餘額現金，不超出可用資金。股數以股計，非張。</p>
+          <div className="cash-inputs"><label>投入／提取金額（TWD）<input type="number" step="any" value={cashFlow} onChange={e => { invalidate(); setCashFlow(e.target.value) }}/></label></div>
+          <p className="hint">正數代表投入，負數代表提取，0 代表只調整現有持股。目標持股以整股計算，保留餘額現金。股數以股計，非張。</p>
           <button className="primary" type="submit">計算買賣股數 →</button>
           {error && <p className="error" role="alert">{error}</p>}
         </section>
@@ -76,7 +75,8 @@ export default function App() {
     {result && <section className="panel results" aria-live="polite"><div className="section-heading"><div><span className="step">03</span><h2>再平衡結果</h2></div></div>
       <div className="summary">{[['現有持股總值', result.currentTotal], ['調整後可配置資金', result.targetTotal], ['買入金額', result.buys], ['賣出金額', result.sells], ['配置後剩餘現金', result.remainingCash]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{number(value)} <small>TWD</small></strong></div>)}</div>
       <div className="table-scroll"><table><thead><tr>{['股票', '目標比例', '現有股數', '買賣股數', '交易金額 TWD', '調整後股數', '實際比例'].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{result.rows.map(row => <tr key={row.id}><td><strong>{row.symbol}</strong></td><td>{number(row.weight, 6)}%</td><td>{number(row.quantity, 8)}</td><td className={row.deltaShares > 0 ? 'buy' : row.deltaShares < 0 ? 'sell' : ''}>{Math.abs(row.deltaShares) < 1e-10 ? '不需交易' : `${row.deltaShares > 0 ? '買入' : '賣出'} ${number(Math.abs(row.deltaShares), 8)} 股`}</td><td>{number(Math.abs(row.tradeValue))}</td><td>{number(row.targetShares, 8)}</td><td>{number(row.actualWeight, 4)}%</td></tr>)}</tbody></table></div>
-      <p className="hint">{wholeShares ? '整股交易可能無法精確達標；實際比例以調整後可配置資金（含剩餘現金）為分母。' : '小數股為理論結果，顯示至小數點後 8 位；實際可交易精度依券商規定。'}{result.targetTotal === 0 ? ' 全數提取後沒有剩餘持股，比例顯示為 0%。' : ''}</p>
+      {result.targetTotal > 0 && result.rows.some(row => Math.abs(row.actualWeight - row.weight) > 0.0001) && <p className="hint">整股限制使部分股票無法精確達到目標比例。請查看實際比例與剩餘現金。</p>}
+      {result.targetTotal === 0 && <p className="hint">全數提取後沒有剩餘持股，比例顯示為 0%。</p>}
       <p className="hint">依輸入價格與匯率試算，未計手續費、交易稅及價格變動。可先賣出再買入，以取得買入所需資金。</p>
     </section>}
   </main>

@@ -21,11 +21,6 @@ test('negative cash flow withdraws from target assets', () => {
   assert.deepEqual(result.rows.map(row => row.deltaShares), [-6, 8])
   assert.equal(result.buys - result.sells + result.remainingCash, -200)
 })
-test('fractional shares reach exact weights', () => {
-  const result = rebalance(rows, 500, false)
-  assert.deepEqual(result.rows.map(row => row.targetShares), [7.5, 15])
-  assert.ok(result.rows.every(row => row.actualWeight === 50))
-})
 test('foreign exchange and complete withdrawal', () => {
   const result = rebalance([stock('AAA', 100, 2, 10, 30)], -600)
   assert.equal(result.currentTotal, 600)
