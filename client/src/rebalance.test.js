@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { rebalance } from './rebalance.js'
+import { convertCashFlow, rebalance } from './rebalance.js'
 const stock = (symbol, weight, quantity, price, fx = 1) => ({ symbol, weight, quantity, price, fx, currency: 'TWD' })
 const rows = [stock('AAA', 50, 10, 100), stock('BBB', 50, 0, 50)]
 test('rebalance existing holdings without cash flow', () => {
@@ -20,6 +20,14 @@ test('negative cash flow withdraws from target assets', () => {
   assert.equal(result.targetTotal, 800)
   assert.deepEqual(result.rows.map(row => row.deltaShares), [-6, 8])
   assert.equal(result.buys - result.sells + result.remainingCash, -200)
+})
+test('cash currency conversion preserves deposit and withdrawal direction', () => {
+  assert.equal(convertCashFlow(0, '', null), 0)
+  assert.equal(convertCashFlow('1000', 'TWD', null), 1000)
+  assert.equal(convertCashFlow('100', 'USD', 32.5), 3250)
+  assert.equal(rebalance(rows, convertCashFlow('-10', 'USD', 32.5)).targetTotal, 675)
+  assert.throws(() => convertCashFlow(10, '', null), /幣種/)
+  assert.throws(() => convertCashFlow(10, 'USD', null), /匯率/)
 })
 test('foreign exchange and complete withdrawal', () => {
   const result = rebalance([stock('AAA', 100, 2, 10, 30)], -600)
