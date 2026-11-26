@@ -95,8 +95,8 @@ export default function App() {
             <div className="step-heading"><span className="step-number">02</span><div><small>第二步</small><h2>根據目標比例計算交易股數</h2><p>填入各檔股票的目標比例、現有股數，以及預計投入或提取的金額。</p></div></div>
             <div className="rebalance-total"><small>調整後組合市值</small><strong>{Number.isFinite(targetTotal) && targetTotal >= 0 ? `NT$ ${format(targetTotal, 0)}` : '—'}</strong></div>
           </div>
-          <div className="cash-flow-control"><label><span>投入／提取現金</span><input type="number" step="any" value={cashFlow} onChange={event => setCashFlow(event.target.value)}/><b>NT$</b></label><small>正數代表投入，負數代表提取；0 代表只調整現有持股。</small></div>
           <div className="rebalance-actions"><span className={Math.abs(weightTotal - 100) < 0.000001 ? 'valid' : ''}>目標比例合計 <strong>{format(weightTotal, 6)}%</strong> / 100%</span><button type="button" onClick={refreshQuotes} disabled={refreshing}>{refreshing ? '更新中…' : '更新報價'}</button></div>
+          <div className="cash-flow-control"><label><span>投入／提取現金</span><input type="number" step="any" value={cashFlow} onChange={event => setCashFlow(event.target.value)}/><b>NT$</b></label><small>正數代表投入，負數代表提取；0 代表只調整現有持股。</small></div>
           <div className="rebalance-table-scroll"><div className="rebalance-table" role="table" aria-label="投資組合再平衡">
             <div className="rebalance-table-head" role="row">{['標的／即時價格', '現有股數', '即時市值／比例', '目標市值／比例', '調整股數'].map(label => <span role="columnheader" key={label}>{label}</span>)}</div>
             {rows.map(row => {
