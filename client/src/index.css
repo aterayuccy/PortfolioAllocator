@@ -23,10 +23,9 @@ h2 { font-size: 20px; margin: 0; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
 th { color: #9fb6c4; font-weight: 500; white-space: nowrap; padding: 12px 10px; border-bottom: 1px solid #385567; }
 td { padding: 14px 10px; border-bottom: 1px solid #243945; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.input-table { min-width: 920px; table-layout: fixed; }
-.input-table th:first-child { width: 22%; }
+.input-table { min-width: 620px; table-layout: fixed; }
+.input-table th:first-child { width: 40%; }
 .input-table th:last-child { width: 85px; }
-.input-table th:nth-child(5) { width: 10%; }
 .quote-note { display: block; white-space: normal; color: #a2b5c1; margin-top: 6px; font-size: 12px; }
 .remove { padding: 8px; color: #ffb4ac; background: transparent; }
 .valid, .buy { color: #83dfb3; }

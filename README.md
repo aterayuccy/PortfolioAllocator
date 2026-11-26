@@ -2,7 +2,7 @@
 
 [Live app](https://sharebalance.alwaysdata.net/) · [GitHub repository](https://github.com/aterayuccy/ShareBalance)
 
-Enter multiple stocks, target weights, existing shares, and a signed cash change to calculate portfolio rebalancing trades. Positive cash adds funds, negative cash withdraws funds, and zero rebalances existing holdings only. No account is required. Prices and TWD exchange rates can be fetched or entered manually. Target weights must total 100%. Trades use whole shares, with residual cash and actual weights shown when exact allocation is unavailable. Fees and taxes are excluded.
+Enter multiple stocks, target weights, existing shares, and a signed cash change to calculate portfolio rebalancing trades. Positive cash adds funds, negative cash withdraws funds, and zero rebalances existing holdings only. No account is required. Prices and TWD exchange rates are fetched automatically when a symbol is entered. Target weights must total 100%. Results update automatically and show fractional share estimates, as in the original rebalancing step. Fees and taxes are excluded.
 
 Inputs remain only in the current page session and reset when the page reloads. The former fundamental scoring and automatic weight allocation interface has been removed.
 
@@ -47,7 +47,7 @@ Run `docker compose up --build` to serve the application at `http://localhost:10
 
 Railway builds the root Dockerfile into one web service. The React client is packaged into Spring Boot. Railway supplies PORT; no database, JWT secret, or bootstrap accounts are required.
 
-The alwaysdata deployment is built by `./alwaysdata/build.ps1` for the live site, with document root `/home/sharebalance/portfolioallocator/alwaysdata/root`. This server path is separate from the Windows checkout. It uses a small PHP endpoint for Yahoo Finance quotes instead of running a Java process. The calculator works with manually entered prices if the quote provider is unavailable. The free account is for noncommercial use only; a paid plan is required before offering paid features.
+The alwaysdata deployment is built by `./alwaysdata/build.ps1` for the live site, with document root `/home/sharebalance/portfolioallocator/alwaysdata/root`. This server path is separate from the Windows checkout. It uses a small PHP endpoint for Yahoo Finance quotes instead of running a Java process. A quote is required for the calculator to show results. The free account is for noncommercial use only; a paid plan is required before offering paid features.
 
 After pushing a new build, enable the paused manual update task in the `sharebalance` alwaysdata account for one run, check the live site, then pause it again. The task runs `git -C /home/sharebalance/portfolioallocator pull --ff-only origin main`.
 
