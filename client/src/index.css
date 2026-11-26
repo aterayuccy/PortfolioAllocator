@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap');
 :root { font-family: 'Noto Sans TC', sans-serif; color: #eaf2f7; background: #0b141a; font-synthesis: none; }
 * { box-sizing: border-box; }
+html { overflow-x: clip; }
 body { margin: 0; min-width: 320px; }
 button, input { font: inherit; }
 button { cursor: pointer; }
