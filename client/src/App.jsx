@@ -82,16 +82,16 @@ export default function App() {
   return <main className="app">
     <section className="dashboard">
       <div className="workspace-layout">
-        <aside className="step-search-card">
-          <form className="search" onSubmit={addStock}><button type="submit" disabled={searching || !symbol.trim()}>{searching ? '搜尋中…' : '搜尋'}</button><input value={symbol} onChange={event => setSymbol(event.target.value)} placeholder="請輸入標的" aria-label="請輸入標的"/></form>
-          {quoteError && <p className="error" role="alert">{quoteError}</p>}
-        </aside>
         <div className="rebalance-workspace">
           <div className="rebalance-heading">
-            <div className="rebalance-total"><small>調整後組合市值</small><strong>{Number.isFinite(targetTotal) && targetTotal >= 0 ? `NT$ ${format(targetTotal, 0)}` : '—'}</strong></div>
+            <form className="search" onSubmit={addStock}><button type="submit" disabled={searching || !symbol.trim()}>{searching ? '搜尋中…' : '搜尋'}</button><input value={symbol} onChange={event => setSymbol(event.target.value)} placeholder="請輸入標的" aria-label="請輸入標的"/></form>
+            <div className="quote-controls">
+              <button type="button" onClick={refreshQuotes} disabled={refreshing || !rows.length}>{refreshing ? '更新中…' : '更新報價'}</button>
+              <div className="rebalance-total"><small>調整後組合市值</small><strong>{Number.isFinite(targetTotal) && targetTotal >= 0 ? `NT$ ${format(targetTotal, 0)}` : '—'}</strong></div>
+            </div>
           </div>
-          <div className="rebalance-actions"><button type="button" onClick={refreshQuotes} disabled={refreshing || !rows.length}>{refreshing ? '更新中…' : '更新報價'}</button></div>
-          <div className="cash-flow-control"><label><span>投入／提取現金</span><input type="number" step="any" value={cashFlow} onChange={event => setCashFlow(event.target.value)}/><b>NT$</b></label><p className="cash-flow-hint">正數代表投入，負數代表提取；0 代表只調整現有持股。</p></div>
+          {quoteError && <p className="error" role="alert">{quoteError}</p>}
+          <div className="cash-flow-control"><label><span>投入／提取現金</span><input type="number" step="any" value={cashFlow} onChange={event => setCashFlow(event.target.value)}/><b>NT$</b></label></div>
           <div className="rebalance-table-scroll"><div className="rebalance-table" role="table" aria-label="投資組合再平衡">
             <div className="rebalance-table-head" role="row">{['標的／即時價格', '現有股數', '即時市值／比例', '目標市值／比例', '調整股數'].map(label => <span role="columnheader" key={label}>{label}</span>)}</div>
             {!rows.length && <div className="rebalance-row empty-stock-row" role="row"><span role="cell">尚未加入標的</span><span role="cell">—</span><span role="cell">—</span><span role="cell">—</span><span role="cell">—</span></div>}
