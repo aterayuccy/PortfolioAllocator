@@ -83,9 +83,8 @@ export default function App() {
     <section className="dashboard">
       <div className="workspace-layout">
         <aside className="step-search-card">
-          <form className="search" onSubmit={addStock}><span aria-hidden="true">⌕</span><input value={symbol} onChange={event => setSymbol(event.target.value)} placeholder="例如 2330、AAPL" aria-label="股票代號"/><button disabled={searching || !symbol.trim()}>{searching ? '取得中…' : '搜尋並加入'}</button></form>
+          <form className="search" onSubmit={addStock}><button type="submit" disabled={searching || !symbol.trim()}>{searching ? '搜尋中…' : '搜尋'}</button><input value={symbol} onChange={event => setSymbol(event.target.value)} placeholder="請輸入標的" aria-label="請輸入標的"/></form>
           {quoteError && <p className="error" role="alert">{quoteError}</p>}
-          <div className="search-guidance">{rows.length ? `已加入 ${rows.length} 檔標的，可繼續搜尋加入。` : '尚未加入標的。台股例如 2330，美股例如 AAPL。'}</div>
         </aside>
         <div className="rebalance-workspace">
           <div className="rebalance-heading">
