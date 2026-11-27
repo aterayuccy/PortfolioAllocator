@@ -1,17 +1,14 @@
 export const canonicalSymbol = (value) => /^\d{4,6}$/.test(value.trim()) ? `${value.trim()}.TW` : value.trim().toUpperCase()
 const numeric = (value) => String(value).trim() !== '' && Number.isFinite(Number(value))
 
-export function convertCashFlow(amount, currency, usdToTwd) {
-  if (!numeric(amount)) throw new Error('本次資金變動必須是有效數字。')
-  const value = Number(amount)
-  if (value === 0) return 0
-  if (!currency) throw new Error('請選擇投入／提取幣種。')
-  if (currency === 'TWD') return value
-  if (currency === 'USD') {
-    if (!numeric(usdToTwd) || Number(usdToTwd) <= 0) throw new Error('美元匯率尚未取得，請更新報價。')
-    return value * Number(usdToTwd)
+export function rateToBase(twdRate, baseCurrency, usdToTwd) {
+  if (!numeric(twdRate) || Number(twdRate) <= 0) throw new Error('標的匯率尚未取得，請更新股價與匯率。')
+  if (baseCurrency === 'TWD') return Number(twdRate)
+  if (baseCurrency === 'USD') {
+    if (!numeric(usdToTwd) || Number(usdToTwd) <= 0) throw new Error('美元匯率尚未取得，請更新股價與匯率。')
+    return Number(twdRate) / Number(usdToTwd)
   }
-  throw new Error('不支援的投入／提取幣種。')
+  throw new Error('請選擇計價幣種。')
 }
 
 export function rebalance(rows, cashFlow) {

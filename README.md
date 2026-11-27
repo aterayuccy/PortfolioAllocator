@@ -2,7 +2,7 @@
 
 [Live app](https://sharebalance.alwaysdata.net/) · [GitHub repository](https://github.com/aterayuccy/ShareBalance)
 
-Search and add multiple stocks, then enter target weights, existing shares, and a signed cash change in the rebalancing table. Positive cash adds funds, negative cash withdraws funds, and zero rebalances existing holdings only. No account is required. Prices and TWD exchange rates are fetched when a stock is added. Target weights must total 100%. Results update automatically and show fractional share estimates, as in the original rebalancing step. Fees and taxes are excluded.
+Search and add multiple stocks in the left settings panel, then enter target weights and existing shares in the right rebalancing table. Select TWD or USD as the valuation currency and enter a signed cash change in that same currency. Positive cash adds funds, negative cash withdraws funds, and zero rebalances existing holdings only. Current and adjusted portfolio values, stock values, and target values use the selected currency. Stock prices stay in their quoted currencies; the table shows each stock currency's exchange rate into the selected currency. Prices and exchange rates are fetched when a stock is added and can be refreshed with the update button. No account is required. Target weights must total 100%. Results update automatically and show fractional share estimates, as in the original rebalancing step. Fees and taxes are excluded.
 
 Inputs remain only in the current page session and reset when the page reloads. The former fundamental scoring and automatic weight allocation interface has been removed.
 

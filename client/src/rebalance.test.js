@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { convertCashFlow, rebalance } from './rebalance.js'
+import { rateToBase, rebalance } from './rebalance.js'
 const stock = (symbol, weight, quantity, price, fx = 1) => ({ symbol, weight, quantity, price, fx, currency: 'TWD' })
 const rows = [stock('AAA', 50, 10, 100), stock('BBB', 50, 0, 50)]
 test('rebalance existing holdings without cash flow', () => {
@@ -21,13 +21,19 @@ test('negative cash flow withdraws from target assets', () => {
   assert.deepEqual(result.rows.map(row => row.deltaShares), [-6, 8])
   assert.equal(result.buys - result.sells + result.remainingCash, -200)
 })
-test('cash currency conversion preserves deposit and withdrawal direction', () => {
-  assert.equal(convertCashFlow(0, '', null), 0)
-  assert.equal(convertCashFlow('1000', 'TWD', null), 1000)
-  assert.equal(convertCashFlow('100', 'USD', 32.5), 3250)
-  assert.equal(rebalance(rows, convertCashFlow('-10', 'USD', 32.5)).targetTotal, 675)
-  assert.throws(() => convertCashFlow(10, '', null), /幣種/)
-  assert.throws(() => convertCashFlow(10, 'USD', null), /匯率/)
+test('switching valuation currency keeps target share counts consistent', () => {
+  const twd = [stock('2330.TW', 50, 10, 100, 1), { ...stock('AAPL', 50, 2, 50, 32.5), currency: 'USD' }]
+  const usd = twd.map(row => ({ ...row, fx: rateToBase(row.fx, 'USD', 32.5) }))
+  assert.equal(rateToBase(1, 'TWD', null), 1)
+  assert.equal(rateToBase(32.5, 'USD', 32.5), 1)
+  for (const cash of [325, -325]) {
+    const twdResult = rebalance(twd, cash)
+    const usdResult = rebalance(usd, cash / 32.5)
+    assert.ok(Math.abs(twdResult.targetTotal / 32.5 - usdResult.targetTotal) < 1e-8)
+    twdResult.rows.forEach((row, index) => assert.ok(Math.abs(row.deltaShares - usdResult.rows[index].deltaShares) < 1e-8))
+  }
+  assert.throws(() => rateToBase(1, 'USD', null), /匯率/)
+  assert.throws(() => rateToBase(0, 'TWD', null), /匯率/)
 })
 test('foreign exchange and complete withdrawal', () => {
   const result = rebalance([stock('AAA', 100, 2, 10, 30)], -600)

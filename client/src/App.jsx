@@ -1,14 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
-import { canonicalSymbol, convertCashFlow, rebalance } from './rebalance'
+import { canonicalSymbol, rateToBase, rebalance } from './rebalance'
 
 const format = (value, digits = 2) => new Intl.NumberFormat('zh-TW', { maximumFractionDigits: digits }).format(value)
 const quoteTime = () => new Date().toLocaleTimeString('zh-TW')
+const currencyLabel = currency => currency === 'TWD' ? 'NT$' : 'US$'
 
 export default function App() {
   const [symbol, setSymbol] = useState('')
   const [rows, setRows] = useState([])
   const [cashFlow, setCashFlow] = useState('0')
-  const [cashCurrency, setCashCurrency] = useState('')
+  const [cashCurrency, setCashCurrency] = useState('TWD')
   const [cashFx, setCashFx] = useState(null)
   const cashFxRequest = useRef(0)
   const [searching, setSearching] = useState(false)
@@ -65,7 +66,7 @@ export default function App() {
       const rate = (await getQuote('TWD=X')).price
       if (requestId === cashFxRequest.current) setCashFx(rate)
     } catch {
-      if (requestId === cashFxRequest.current) setQuoteError('美元匯率取得失敗，請按「更新報價」重試。')
+      if (requestId === cashFxRequest.current) setQuoteError('美元匯率取得失敗，請按「更新股價與匯率」重試。')
     }
   }
 
@@ -98,37 +99,51 @@ export default function App() {
     setRows(current => current.map(row => row.id === id ? { ...row, [field]: value } : row))
   }
 
-  const currentTotal = rows.reduce((sum, row) => sum + Number(row.quantity || 0) * Number(row.price) * Number(row.fx), 0)
+  const pricedRows = useMemo(() => {
+    if (cashCurrency === 'USD' && !cashFx) return null
+    try { return rows.map(row => ({ ...row, fx: String(rateToBase(row.fx, cashCurrency, cashFx)) })) }
+    catch { return null }
+  }, [rows, cashCurrency, cashFx])
+  const currentTotal = pricedRows?.reduce((sum, row) => sum + Number(row.quantity || 0) * Number(row.price) * Number(row.fx), 0)
+  const projectedTotal = currentTotal !== undefined && cashFlow !== '' && Number.isFinite(Number(cashFlow)) && currentTotal + Number(cashFlow) >= 0
+    ? currentTotal + Number(cashFlow) : null
   const { result, error } = useMemo(() => {
     if (!rows.length || rows.some(row => row.weight === '') || cashFlow === '') return { result: null, error: '' }
-    try { return { result: rebalance(rows, convertCashFlow(cashFlow, cashCurrency, cashFx)), error: '' } }
+    if (!pricedRows) return { result: null, error: '計價幣種的匯率尚未取得，請更新股價與匯率。' }
+    try { return { result: rebalance(pricedRows, cashFlow), error: '' } }
     catch (problem) { return { result: null, error: problem.message } }
-  }, [rows, cashFlow, cashCurrency, cashFx])
+  }, [rows, pricedRows, cashFlow])
   const calculatedRows = new Map(result?.rows.map(row => [row.id, row]))
 
   return <main className="app">
     <section className="dashboard">
       <div className="workspace-layout">
-        <div className="rebalance-workspace">
-          <div className="rebalance-toolbar">
-            <form className="search" onSubmit={addStock}><input value={symbol} onChange={event => setSymbol(event.target.value)} placeholder="請輸入標的" aria-label="請輸入標的"/><button type="submit" disabled={searching || !symbol.trim()}>{searching ? '搜尋中…' : '搜尋'}</button></form>
-            <select className="cash-currency" value={cashCurrency} onChange={selectCashCurrency} aria-label="投入／提取幣種"><option value="">請輸入幣種</option><option value="TWD">TWD 台幣</option><option value="USD">USD 美元</option></select>
+        <aside className="settings-card" aria-label="組合設定">
+          <form className="search" onSubmit={addStock}><input value={symbol} onChange={event => setSymbol(event.target.value)} placeholder="請輸入標的" aria-label="搜尋標的"/><button type="submit" disabled={searching || !symbol.trim()}>{searching ? '搜尋中…' : '搜尋'}</button></form>
+          <div className="cash-row">
             <label className="cash-amount-control"><span>投入／提取金額</span><input type="number" step="any" value={cashFlow} onChange={event => setCashFlow(event.target.value)} aria-label="投入／提取金額"/></label>
-            <button className="refresh-button" type="button" onClick={refreshQuotes} disabled={refreshing || (!rows.length && cashCurrency !== 'USD')}>{refreshing ? '更新中…' : '更新報價'}</button>
+            <select className="cash-currency" value={cashCurrency} onChange={selectCashCurrency} aria-label="計價幣種"><option value="TWD">TWD 台幣</option><option value="USD">USD 美元</option></select>
           </div>
-          {cashCurrency === 'USD' && cashFx && <p className="cash-rate">1 USD ≈ NT$ {format(cashFx, 4)}</p>}
+          <div className="totals-row">
+            <div className="total-tile"><span>調整前組合市值</span><strong>{currentTotal === undefined ? '—' : `${currencyLabel(cashCurrency)} ${format(currentTotal, 0)}`}</strong></div>
+            <div className="total-tile"><span>調整後組合市值</span><strong>{projectedTotal === null ? '—' : `${currencyLabel(cashCurrency)} ${format(projectedTotal, 0)}`}</strong></div>
+          </div>
+          <button className="refresh-button" type="button" onClick={refreshQuotes} disabled={refreshing || !rows.length}>{refreshing ? '更新中…' : '更新股價與匯率'}</button>
           {quoteError && <p className="error" role="alert">{quoteError}</p>}
+        </aside>
+        <div className="rebalance-workspace">
           <div className="rebalance-table-scroll"><div className="rebalance-table" role="table" aria-label="投資組合再平衡">
             <div className="rebalance-table-head" role="row">{['標的／即時價格', '現有股數', '即時市值／比例', '目標市值／比例', '調整股數'].map(label => <span role="columnheader" key={label}>{label}</span>)}<span role="columnheader" className="remove-header"><span className="sr-only">操作</span></span></div>
             {!rows.length && <div className="rebalance-row empty-stock-row" role="row"><span role="cell">尚未加入標的</span><span role="cell">—</span><span role="cell">—</span><span role="cell">—</span><span role="cell">—</span><span role="cell" /></div>}
             {rows.map(row => {
-              const currentValue = Number(row.quantity || 0) * Number(row.price) * Number(row.fx)
+              const baseRate = pricedRows?.find(item => item.id === row.id)?.fx
+              const currentValue = baseRate === undefined ? null : Number(row.quantity || 0) * Number(row.price) * Number(baseRate)
               const calculated = calculatedRows.get(row.id)
               return <div className="rebalance-row" role="row" key={row.id}>
-                <span role="cell" className="stock-cell"><strong>{row.symbol}</strong><small>{row.currency} {format(Number(row.price), 4)}{row.currency !== 'TWD' && ` · 匯率 ${format(Number(row.fx), 4)}`}</small></span>
+                <span role="cell" className="stock-cell"><strong>{row.symbol}</strong><small>{row.currency} {format(Number(row.price), 4)}</small><small>{baseRate === undefined ? '匯率更新中' : `匯率 ${row.currency}/${cashCurrency} ${format(Number(baseRate), 4)}`}</small></span>
                 <span role="cell"><input type="number" min="0" step="any" value={row.quantity} placeholder="0" aria-label={`${row.symbol} 現有股數`} onChange={event => update(row.id, 'quantity', event.target.value)}/></span>
-                <span role="cell"><strong>NT$ {format(currentValue, 0)}</strong><small>{currentTotal > 0 ? format(currentValue / currentTotal * 100) : 0}%</small></span>
-                <span role="cell" className="target-cell"><strong>{calculated ? `NT$ ${format(calculated.finalValue, 0)}` : '—'}</strong><label><span className="sr-only">{row.symbol} 目標比例</span><input type="number" min="0" max="100" step="any" value={row.weight} placeholder="0" aria-label={`${row.symbol} 目標比例`} onChange={event => update(row.id, 'weight', event.target.value)}/><small>%</small></label></span>
+                <span role="cell"><strong>{currentValue === null ? '—' : `${currencyLabel(cashCurrency)} ${format(currentValue, 0)}`}</strong><small>{currentTotal > 0 ? format(currentValue / currentTotal * 100) : 0}%</small></span>
+                <span role="cell" className="target-cell"><strong>{calculated ? `${currencyLabel(cashCurrency)} ${format(calculated.finalValue, 0)}` : '—'}</strong><label><span className="sr-only">{row.symbol} 目標比例</span><input type="number" min="0" max="100" step="any" value={row.weight} placeholder="0" aria-label={`${row.symbol} 目標比例`} onChange={event => update(row.id, 'weight', event.target.value)}/><small>%</small></label></span>
                 <b role="cell" className={calculated?.deltaShares > 0 ? 'buy' : calculated?.deltaShares < 0 ? 'sell' : ''}>{!calculated ? '—' : Math.abs(calculated.deltaShares) < 1e-10 ? '不需調整' : `${calculated.deltaShares > 0 ? '增加' : '減少'} ${format(Math.abs(calculated.deltaShares), 2)} 股`}</b>
                 <span role="cell" className="remove-cell"><button type="button" className="row-remove" aria-label={`移除 ${row.symbol}`} onClick={() => setRows(current => current.filter(item => item.id !== row.id))}>×</button></span>
               </div>
