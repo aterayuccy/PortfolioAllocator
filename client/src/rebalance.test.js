@@ -23,17 +23,18 @@ test('negative cash flow withdraws from target assets', () => {
 })
 test('switching valuation currency keeps target share counts consistent', () => {
   const twd = [stock('2330.TW', 50, 10, 100, 1), { ...stock('AAPL', 50, 2, 50, 32.5), currency: 'USD' }]
-  const usd = twd.map(row => ({ ...row, fx: rateToBase(row.fx, 'USD', 32.5) }))
-  assert.equal(rateToBase(1, 'TWD', null), 1)
-  assert.equal(rateToBase(32.5, 'USD', 32.5), 1)
+  const usd = twd.map(row => ({ ...row, fx: rateToBase(row.fx, 'USD', 32.5, row.currency) }))
+  assert.equal(rateToBase(1, 'TWD', null, 'TWD'), 1)
+  assert.equal(rateToBase(32.5, 'USD', 32.5, 'USD'), 1)
+  assert.equal(rateToBase(32.934, 'USD', 32.93, 'USD'), 1)
   for (const cash of [325, -325]) {
     const twdResult = rebalance(twd, cash)
     const usdResult = rebalance(usd, cash / 32.5)
     assert.ok(Math.abs(twdResult.targetTotal / 32.5 - usdResult.targetTotal) < 1e-8)
     twdResult.rows.forEach((row, index) => assert.ok(Math.abs(row.deltaShares - usdResult.rows[index].deltaShares) < 1e-8))
   }
-  assert.throws(() => rateToBase(1, 'USD', null), /匯率/)
-  assert.throws(() => rateToBase(0, 'TWD', null), /匯率/)
+  assert.throws(() => rateToBase(1, 'USD', null, 'TWD'), /匯率/)
+  assert.throws(() => rateToBase(0, 'TWD', null, 'TWD'), /匯率/)
 })
 test('foreign exchange and complete withdrawal', () => {
   const result = rebalance([stock('AAA', 100, 2, 10, 30)], -600)

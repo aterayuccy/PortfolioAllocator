@@ -1,8 +1,9 @@
 export const canonicalSymbol = (value) => /^\d{4,6}$/.test(value.trim()) ? `${value.trim()}.TW` : value.trim().toUpperCase()
 const numeric = (value) => String(value).trim() !== '' && Number.isFinite(Number(value))
 
-export function rateToBase(twdRate, baseCurrency, usdToTwd) {
+export function rateToBase(twdRate, baseCurrency, usdToTwd, sourceCurrency) {
   if (!numeric(twdRate) || Number(twdRate) <= 0) throw new Error('標的匯率尚未取得，請更新股價與匯率。')
+  if (sourceCurrency === baseCurrency) return 1
   if (baseCurrency === 'TWD') return Number(twdRate)
   if (baseCurrency === 'USD') {
     if (!numeric(usdToTwd) || Number(usdToTwd) <= 0) throw new Error('美元匯率尚未取得，請更新股價與匯率。')

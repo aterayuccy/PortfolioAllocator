@@ -101,7 +101,7 @@ export default function App() {
 
   const pricedRows = useMemo(() => {
     if (cashCurrency === 'USD' && !cashFx) return null
-    try { return rows.map(row => ({ ...row, fx: String(rateToBase(row.fx, cashCurrency, cashFx)) })) }
+    try { return rows.map(row => ({ ...row, fx: String(rateToBase(row.fx, cashCurrency, cashFx, row.currency)) })) }
     catch { return null }
   }, [rows, cashCurrency, cashFx])
   const currentTotal = pricedRows?.reduce((sum, row) => sum + Number(row.quantity || 0) * Number(row.price) * Number(row.fx), 0)
@@ -109,7 +109,7 @@ export default function App() {
     ? currentTotal + Number(cashFlow) : null
   const { result, error } = useMemo(() => {
     if (!rows.length || rows.some(row => row.weight === '') || cashFlow === '') return { result: null, error: '' }
-    if (!pricedRows) return { result: null, error: '計價幣種的匯率尚未取得，請更新股價與匯率。' }
+    if (!pricedRows) return { result: null, error: '' }
     try { return { result: rebalance(pricedRows, cashFlow), error: '' } }
     catch (problem) { return { result: null, error: problem.message } }
   }, [rows, pricedRows, cashFlow])
